@@ -16,7 +16,9 @@ defmodule Ortex.MixProject do
       docs: [
         main: "readme",
         extras: ["README.md"]
-      ]
+      ],
+
+      package: package()
     ]
   end
 
@@ -31,14 +33,23 @@ defmodule Ortex.MixProject do
   defp deps do
     [
       {:rustler, "~> 0.26.0"},
-      {:useful, "~>1.11.0"},
       {:nx, "~>0.5.3"},
       # {:dialyxir, "~>1.3.0", only: [:dev], runtime: false},
-      {:tokenizers, "~> 0.3.0"},
+      {:tokenizers, "~> 0.3.0", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
-      {:axon_onnx, "~>0.4.0"},
-      {:exla, "~> 0.5"},
-      {:torchx, "~> 0.5"}
+      {:axon_onnx, "~>0.4.0", only: :dev},
+      {:exla, "~> 0.5", only: :dev},
+      {:torchx, "~> 0.5", only: :dev}
     ]
   end
+
+  defp package do
+    [
+      files: ~w(lib .formatter.exs mix.exs README* LICENSE* native/ortex/src/
+        native/ortex/Cargo.lock native/ortex/Cargo.toml),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
+      description: "ONNX Runtime bindings for Elixir"
+    ]
+    end
 end
