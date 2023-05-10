@@ -41,8 +41,7 @@ iex> result |> Nx.backend_transfer |> Nx.argmax(axis: 1)
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `ortex` to your list of dependencies in `mix.exs`:
+`Ortex` can be installed by adding `ortex` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do

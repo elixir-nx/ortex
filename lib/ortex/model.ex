@@ -15,7 +15,7 @@ defmodule Ortex.Model do
   ]>
   ```
 
-  `:nil` values represent dynamic dimensions
+  `nil` values represent dynamic dimensions
   """
 
   @enforce_keys [:reference]
