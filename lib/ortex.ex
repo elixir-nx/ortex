@@ -13,9 +13,9 @@ defmodule Ortex do
 
   ## Examples
 
-      iex> Ortex.load("./python/resnet50.onnx")
-      iex> Ortex.load("./python/resnet50.onnx", [:cuda, :cpu])
-      iex> Ortex.load("./python/resnet50.onnx", [:cpu], 0)
+      iex> Ortex.load("./models/resnet50.onnx")
+      iex> Ortex.load("./models/resnet50.onnx", [:cuda, :cpu])
+      iex> Ortex.load("./models/resnet50.onnx", [:cpu], 0)
 
   """
   defdelegate load(path, eps \\ [:cpu], opt \\ 3), to: Ortex.Model
