@@ -17,7 +17,6 @@ defmodule Ortex.MixProject do
         main: "readme",
         extras: ["README.md"]
       ],
-
       package: package()
     ]
   end
@@ -51,5 +50,5 @@ defmodule Ortex.MixProject do
       links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
       description: "ONNX Runtime bindings for Elixir"
     ]
-    end
+  end
 end

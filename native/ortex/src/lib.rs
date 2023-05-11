@@ -17,11 +17,17 @@ use rustler::types::Binary;
 use rustler::{Atom, Env, NifResult, Term};
 
 #[rustler::nif(schedule = "DirtyIo")]
-fn init(env: Env, model_path: String, eps: Vec<Atom>, opt: i32) -> NifResult<ResourceArc<model::OrtexModel>> {
+fn init(
+    env: Env,
+    model_path: String,
+    eps: Vec<Atom>,
+    opt: i32,
+) -> NifResult<ResourceArc<model::OrtexModel>> {
     let eps = utils::map_eps(env, eps);
-    Ok(ResourceArc::new(model::init(model_path, eps, opt).map_err(
-        |e| rustler::Error::Term(Box::new(e.to_string())),
-    )?))
+    Ok(ResourceArc::new(
+        model::init(model_path, eps, opt)
+            .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+    ))
 }
 
 #[rustler::nif]

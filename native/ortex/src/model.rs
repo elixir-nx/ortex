@@ -17,7 +17,6 @@ use std::sync::Arc;
 use ort::{
     environment, execution_providers::ExecutionProvider, session::SessionBuilder,
     tensor::InputTensor, LoggingLevel, OrtError,
-    
 };
 use rustler::resource::ResourceArc;
 use rustler::Atom;
@@ -37,7 +36,11 @@ unsafe impl Sync for OrtexModel {}
 
 /// Creates a model given the path to the model and vector of execution providers.
 /// The execution providers are Atoms from Erlang/Elixir.
-pub fn init(model_path: String, eps: Vec<ExecutionProvider>, opt: i32) -> Result<OrtexModel, OrtError> {
+pub fn init(
+    model_path: String,
+    eps: Vec<ExecutionProvider>,
+    opt: i32,
+) -> Result<OrtexModel, OrtError> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
     let environment = environment::Environment::builder()
