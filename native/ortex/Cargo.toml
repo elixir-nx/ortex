@@ -11,8 +11,18 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rustler = "0.26.0"
-ort = {version = "1.14.6", features = ["cuda", "tensorrt"]}
+ort = {version = "1.14.6", default-features = false, features = ["half", "copy-dylibs"]}
 ndarray = "0.15.6"
 half = "2.2.1"
 tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
 num-traits = "0.2.15"
+
+[features]
+default = ["download-binaries"]
+
+download-binaries = ["ort/download-binaries"]
+
+# ONNXRuntime Execution providers
+directml = ["ort/directml"]
+cuda = ["ort/cuda"]
+tensorrt = ["ort/tensorrt"]
