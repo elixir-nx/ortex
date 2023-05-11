@@ -24,5 +24,6 @@ download-binaries = ["ort/download-binaries"]
 
 # ONNXRuntime Execution providers
 directml = ["ort/directml"]
+coreml = ["ort/coreml"]
 cuda = ["ort/cuda"]
 tensorrt = ["ort/tensorrt"]
