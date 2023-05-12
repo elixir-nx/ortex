@@ -8,10 +8,6 @@ defmodule Ortex.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: [:copy_ort_libs] ++ Mix.compilers(),
-      aliases: [
-        "compile.copy_ort_libs": &copy_ort_libs/1
-      ],
 
       # Docs
       name: "Ortex",
@@ -53,61 +49,5 @@ defmodule Ortex.MixProject do
       links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
       description: "ONNX Runtime bindings for Elixir"
     ]
-  end
-
-  defp copy_ort_libs(_) do
-    rust_env =
-      case Mix.env() do
-        :prod -> "release"
-        _ -> "debug"
-      end
-
-    case :os.type() do
-      {:win32, _} ->
-        Path.wildcard(
-          Path.join([
-            "./_build",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
-            rust_env,
-            "libonnxruntime*.dll*"
-          ])
-        )
-
-      {:unix, :darwin} ->
-        Path.wildcard(
-          Path.join([
-            "./_build/",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
-            rust_env,
-            "libonnxruntime*.dylib*"
-          ])
-        )
-
-      {:unix, _} ->
-        Path.wildcard(
-          Path.join([
-            "./_build/",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
-            rust_env,
-            "libonnxruntime*.so*"
-          ])
-        )
-    end
-    |> Enum.map(fn x ->
-      File.cp!(
-        x,
-        Path.join([
-          "./_build",
-          Mix.env() |> Atom.to_string(),
-          "lib/ortex/priv/native/",
-          Path.basename(x)
-        ])
-      )
-    end)
-
-    {:ok, []}
   end
 end

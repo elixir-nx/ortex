@@ -4,6 +4,14 @@ defmodule Ortex.Native do
 
   Stubs for `Rustler` NIFs. These should never be called directly.
   """
+
+  # We have to compile the crate before `use Rustler` compiles the crate since
+  # cargo downloads the onnxruntime shared libraries and they are not available
+  # to load or copy into Elixir's during the on_load or Elixir compile steps.
+  # In the future, this may be configurable in Rustler.
+  Rustler.Compiler.compile_crate(__MODULE__, otp_app: :ortex, crate: :ortex)
+  Ortex.Util.copy_ort_libs()
+
   use Rustler,
     otp_app: :ortex,
     crate: :ortex
