@@ -3,8 +3,10 @@
 `Ortex` is a wrapper around [ONNX Runtime](https://onnxruntime.ai/) implemented as a
 (limited) `Nx.Backend` using `Rustler` and [`ort`](https://github.com/pykeio/ort).
 
-This allows for easy loading and fast inference of ONNX models using different backends
-available to ONNX Runtime such as CUDA, TensorRT, CoreML, and ARM Compute Library.
+ONNX models are a standard machine learning model format that can be exported from most ML
+libraries like PyTorch and TensorFlow. Ortex allows for easy loading and fast inference of
+ONNX models using different backends available to ONNX Runtime such as CUDA, TensorRT, Core
+ML, and ARM Compute Library.
 
 ## Examples
 
