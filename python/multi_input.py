@@ -6,6 +6,7 @@ class MultiInputModel(torch.nn.Module):
     A simple model for testing Ortex multi-input and multi-output
     with different dtypes
     """
+
     def __init__(self):
         super(MultiInputModel, self).__init__()
 

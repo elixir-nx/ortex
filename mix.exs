@@ -17,7 +17,6 @@ defmodule Ortex.MixProject do
         main: "readme",
         extras: ["README.md"]
       ],
-
       package: package()
     ]
   end
@@ -34,7 +33,6 @@ defmodule Ortex.MixProject do
     [
       {:rustler, "~> 0.26.0"},
       {:nx, "~>0.5.3"},
-      # {:dialyxir, "~>1.3.0", only: [:dev], runtime: false},
       {:tokenizers, "~> 0.3.0", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
       {:axon_onnx, "~>0.4.0", only: :dev},
@@ -51,5 +49,5 @@ defmodule Ortex.MixProject do
       links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
       description: "ONNX Runtime bindings for Elixir"
     ]
-    end
+  end
 end
