@@ -26,6 +26,8 @@ iex> output |> Nx.backend_transfer(Nx.BinaryBackend) |> Nx.argmax
 Inspecting a model shows the expected inputs, outputs, data types, and shapes. Axes with
 `nil` represent a dynamic size.
 
+To see more real world examples see `examples`.
+
 ### Serving
 `Ortex` also implements `Nx.Serving` behaviour. To use it in your application's
 supervision tree consult the `Nx.Serving` docs.
