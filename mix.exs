@@ -74,6 +74,17 @@ defmodule Ortex.MixProject do
           ])
         )
 
+      {:unix, :darwin} ->
+        Path.wildcard(
+          Path.join([
+            "./_build/",
+            Mix.env() |> Atom.to_string(),
+            "lib/ortex/native/ortex",
+            rust_env,
+            "libonnxruntime*.dylib*"
+          ])
+        )
+
       {:unix, _} ->
         Path.wildcard(
           Path.join([
