@@ -44,7 +44,7 @@ defmodule Ortex.MixProject do
   defp package do
     [
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* native/ortex/src/
-        native/ortex/Cargo.lock native/ortex/Cargo.toml),
+        native/ortex/Cargo.lock native/ortex/Cargo.toml native/ortex/.cargo/config.toml),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
       description: "ONNX Runtime bindings for Elixir"

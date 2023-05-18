@@ -1,8 +1,11 @@
 defmodule Ortex.Util do
   def copy_ort_libs() do
+
+    build_root = Path.absname(:code.priv_dir(:ortex)) |> Path.dirname
+
     rust_env =
-      case Mix.env() do
-        :prod -> "release"
+      case Path.join([build_root, "native/ortex/release"]) |> File.ls do
+        {:ok, _} -> "release"
         _ -> "debug"
       end
 
@@ -10,9 +13,8 @@ defmodule Ortex.Util do
       {:win32, _} ->
         Path.wildcard(
           Path.join([
-            "./_build",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
+            build_root,
+            "native/ortex",
             rust_env,
             "libonnxruntime*.dll*"
           ])
@@ -21,9 +23,8 @@ defmodule Ortex.Util do
       {:unix, :darwin} ->
         Path.wildcard(
           Path.join([
-            "./_build/",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
+            build_root,
+            "native/ortex",
             rust_env,
             "libonnxruntime*.dylib*"
           ])
@@ -32,9 +33,8 @@ defmodule Ortex.Util do
       {:unix, _} ->
         Path.wildcard(
           Path.join([
-            "./_build/",
-            Mix.env() |> Atom.to_string(),
-            "lib/ortex/native/ortex",
+            build_root,
+            "native/ortex",
             rust_env,
             "libonnxruntime*.so*"
           ])
@@ -44,9 +44,8 @@ defmodule Ortex.Util do
       File.cp!(
         x,
         Path.join([
-          "./_build",
-          Mix.env() |> Atom.to_string(),
-          "lib/ortex/priv/native/",
+          :code.priv_dir(:ortex),
+          "native",
           Path.basename(x)
         ])
       )
