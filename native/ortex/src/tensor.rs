@@ -1,5 +1,6 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use ndarray::prelude::*;
+use ndarray::Data;
 use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
 use ort::OrtError;
 use rustler::Atom;
@@ -78,86 +79,34 @@ impl OrtexTensor {
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        // Annoying and not DRY, Traits are probably the answer here...
-        // Once num_traits has from_<endian>_bytes we can pull that in
-        // https://github.com/rust-num/num-traits/pull/224
-        let contents = match self {
-            OrtexTensor::s8(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::s16(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::s32(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::s64(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::u8(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::u16(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::u32(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::u64(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::f16(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::bf16(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::f32(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
-            OrtexTensor::f64(y) => y
-                .clone()
-                .into_raw_vec()
-                .iter()
-                .flat_map(|f| f.to_ne_bytes().to_vec())
-                .collect(),
+    pub fn to_bytes<'a>(&'a self) -> &'a [u8] {
+        let contents: &'a [u8] = match self {
+            OrtexTensor::s8(y) => get_bytes(y),
+            OrtexTensor::s16(y) => get_bytes(y),
+            OrtexTensor::s32(y) => get_bytes(y),
+            OrtexTensor::s64(y) => get_bytes(y),
+            OrtexTensor::u8(y) => get_bytes(y),
+            OrtexTensor::u16(y) => get_bytes(y),
+            OrtexTensor::u32(y) => get_bytes(y),
+            OrtexTensor::u64(y) => get_bytes(y),
+            OrtexTensor::f16(y) => get_bytes(y),
+            OrtexTensor::bf16(y) => get_bytes(y),
+            OrtexTensor::f32(y) => get_bytes(y),
+            OrtexTensor::f64(y) => get_bytes(y),
         };
         contents
     }
+}
+
+fn get_bytes<'a, T>(array: &'a ArrayBase<T, IxDyn>) -> &'a [u8]
+where
+    T: Data,
+{
+    let len = array.len();
+    let binding = unsafe { std::mem::zeroed() };
+    let f = array.get(0).unwrap_or(&binding);
+    let size: usize = std::mem::size_of_val(f);
+    unsafe { std::slice::from_raw_parts(array.as_ptr() as *const u8, len * size) }
 }
 
 impl std::convert::TryFrom<&DynOrtTensor<'_, IxDyn>> for OrtexTensor {
