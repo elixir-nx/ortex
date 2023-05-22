@@ -1,10 +1,9 @@
 defmodule Ortex.Util do
   def copy_ort_libs() do
-
-    build_root = Path.absname(:code.priv_dir(:ortex)) |> Path.dirname
+    build_root = Path.absname(:code.priv_dir(:ortex)) |> Path.dirname()
 
     rust_env =
-      case Path.join([build_root, "native/ortex/release"]) |> File.ls do
+      case Path.join([build_root, "native/ortex/release"]) |> File.ls() do
         {:ok, _} -> "release"
         _ -> "debug"
       end

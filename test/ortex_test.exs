@@ -12,14 +12,6 @@ defmodule OrtexTest do
     assert argmax == Nx.tensor([499])
   end
 
-  test "transfer to Ortex.Backend" do
-    assert true
-  end
-
-  test "transfer from Ortex.Backend" do
-    assert true
-  end
-
   test "Nx.Serving with resnet50" do
     model = Ortex.load("./models/resnet50.onnx")
 

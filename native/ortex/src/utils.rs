@@ -3,15 +3,21 @@
 
 use crate::constants::*;
 use crate::tensor::OrtexTensor;
+use ndarray::{ArrayViewMut, Ix, IxDyn};
 
-use ndarray::prelude::*;
 use ndarray::ShapeError;
 
 use rustler::resource::ResourceArc;
-use rustler::types::{Binary, OwnedBinary};
-use rustler::{Atom, Env, Error, NifResult};
+use rustler::types::Binary;
+use rustler::{Atom, Env, NifResult};
 
 use ort::{ExecutionProvider, GraphOptimizationLevel};
+
+/// A faster (unsafe) way of creating an Array from an Erlang binary
+fn initialize_from_raw_ptr<T>(ptr: *const T, shape: &[Ix]) -> ArrayViewMut<T, IxDyn> {
+    let array = unsafe { ArrayViewMut::from_shape_ptr(shape, ptr as *mut T) };
+    array
+}
 
 /// Given a Binary term, shape, and dtype from the BEAM, constructs an OrtexTensor and
 /// returns the reference to be used as an Nx.Backend representation.
@@ -32,115 +38,42 @@ pub fn from_binary(
     dtype_str: String,
     dtype_bits: usize,
 ) -> Result<ResourceArc<OrtexTensor>, ShapeError> {
-    // TODO: make this more DRY, pull out into an impl
     match (dtype_str.as_ref(), dtype_bits) {
         ("bf", 16) => Ok(ResourceArc::new(OrtexTensor::bf16(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(2)
-                    .map(|c| half::bf16::from_ne_bytes([c[0], c[1]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const half::bf16, &shape).to_owned(),
         ))),
         ("f", 16) => Ok(ResourceArc::new(OrtexTensor::f16(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(2)
-                    .map(|c| half::f16::from_ne_bytes([c[0], c[1]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const half::f16, &shape).to_owned(),
         ))),
         ("f", 32) => Ok(ResourceArc::new(OrtexTensor::f32(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(4)
-                    .map(|c| f32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const f32, &shape).to_owned(),
         ))),
         ("f", 64) => Ok(ResourceArc::new(OrtexTensor::f64(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(8)
-                    .map(|c| f64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const f64, &shape).to_owned(),
         ))),
         ("s", 8) => Ok(ResourceArc::new(OrtexTensor::s8(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(1)
-                    .map(|c| i8::from_ne_bytes([c[0]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const i8, &shape).to_owned(),
         ))),
         ("s", 16) => Ok(ResourceArc::new(OrtexTensor::s16(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(2)
-                    .map(|c| i16::from_ne_bytes([c[0], c[1]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const i16, &shape).to_owned(),
         ))),
         ("s", 32) => Ok(ResourceArc::new(OrtexTensor::s32(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(4)
-                    .map(|c| i32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const i32, &shape).to_owned(),
         ))),
         ("s", 64) => Ok(ResourceArc::new(OrtexTensor::s64(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(8)
-                    .map(|c| i64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const i64, &shape).to_owned(),
         ))),
         ("u", 8) => Ok(ResourceArc::new(OrtexTensor::u8(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(1)
-                    .map(|c| u8::from_ne_bytes([c[0]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const u8, &shape).to_owned(),
         ))),
         ("u", 16) => Ok(ResourceArc::new(OrtexTensor::u16(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(2)
-                    .map(|c| u16::from_ne_bytes([c[0], c[1]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const u16, &shape).to_owned(),
         ))),
         ("u", 32) => Ok(ResourceArc::new(OrtexTensor::u32(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(4)
-                    .map(|c| u32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const u32, &shape).to_owned(),
         ))),
         ("u", 64) => Ok(ResourceArc::new(OrtexTensor::u64(
-            Array::from_vec(
-                bin.as_slice()
-                    .chunks_exact(8)
-                    .map(|c| u64::from_ne_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
-                    .collect(),
-            )
-            .into_shape(shape)?,
+            initialize_from_raw_ptr(bin.as_ptr() as *const u64, &shape).to_owned(),
         ))),
         (&_, _) => unimplemented!(),
     }
@@ -154,12 +87,7 @@ pub fn to_binary<'a>(
     _bits: usize,
     _limit: usize,
 ) -> NifResult<Binary<'a>> {
-    // TODO: implement limit and size so we aren't dumping the entire binary on every
-    // IO.inspect call
-    let bytes = reference.to_bytes();
-    let mut bin = OwnedBinary::new(bytes.len()).ok_or(Error::Term(Box::new("Out of memory")))?;
-    bin.as_mut_slice().copy_from_slice(&bytes);
-    Ok(Binary::from_owned(bin, env))
+    Ok(reference.make_binary(env, |x| x.to_bytes()))
 }
 
 /// Takes a vec of Atoms and transforms them into a vec of ExecutionProvider Enums
