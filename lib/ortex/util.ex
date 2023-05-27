@@ -1,4 +1,5 @@
 defmodule Ortex.Util do
+  @moduledoc false
   def copy_ort_libs() do
     build_root = Path.absname(:code.priv_dir(:ortex)) |> Path.dirname()
 

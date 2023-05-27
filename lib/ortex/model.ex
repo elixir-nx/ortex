@@ -21,6 +21,7 @@ defmodule Ortex.Model do
   @enforce_keys [:reference]
   defstruct [:reference]
 
+  @doc false
   def load(path, eps \\ [:cpu], opt \\ 3) do
     case Ortex.Native.init(path, eps, opt) do
       {:error, msg} ->
@@ -31,10 +32,12 @@ defmodule Ortex.Model do
     end
   end
 
+  @doc false
   def run(%Ortex.Model{} = model, tensor) when not is_tuple(tensor) do
     run(model, {tensor})
   end
 
+  @doc false
   def run(%Ortex.Model{reference: model}, tensors) do
     # Move tensors into Ortex backend and pass the reference to the Ortex NIF
     output =
