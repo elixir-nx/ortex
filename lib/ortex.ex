@@ -13,9 +13,9 @@ defmodule Ortex do
 
   ## Examples
 
-      iex> Ortex.load("./models/resnet50.onnx")
-      iex> Ortex.load("./models/resnet50.onnx", [:cuda, :cpu])
-      iex> Ortex.load("./models/resnet50.onnx", [:cpu], 0)
+      iex> Ortex.load("./models/tinymodel.onnx")
+      iex> Ortex.load("./models/tinymodel.onnx", [:cuda, :cpu])
+      iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 0)
 
   """
   defdelegate load(path, eps \\ [:cpu], opt \\ 3), to: Ortex.Model
@@ -33,11 +33,6 @@ defmodule Ortex do
 
   ## Examples
 
-      iex> model = Ortex.load("./models/resnet50.onnx")
-      iex> {%Nx.Tensor{shape: {1, 1000}}} = Ortex.run(
-      ...>    model, Nx.broadcast(0.0, {1, 3, 224, 224}))
-
-
       iex> model = Ortex.load("./models/tinymodel.onnx")
       iex> {%Nx.Tensor{shape: {1, 10}},
       ...>  %Nx.Tensor{shape: {1, 10}},
@@ -46,6 +41,7 @@ defmodule Ortex do
       ...>      Nx.broadcast(0, {1, 100}) |> Nx.as_type(:s32),
       ...>      Nx.broadcast(0, {1, 100}) |> Nx.as_type(:f32)
       ...>    })
+
   """
   defdelegate run(model, tensors), to: Ortex.Model
 end
