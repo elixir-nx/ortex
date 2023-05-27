@@ -2,6 +2,7 @@ defmodule OrtexTest do
   use ExUnit.Case
   doctest Ortex
 
+  @tag :resnet50
   test "resnet50" do
     model = Ortex.load("./models/resnet50.onnx")
 
@@ -12,6 +13,7 @@ defmodule OrtexTest do
     assert argmax == Nx.tensor([499])
   end
 
+  @tag :resnet50
   test "Nx.Serving with resnet50" do
     model = Ortex.load("./models/resnet50.onnx")
 
