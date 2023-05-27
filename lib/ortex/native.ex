@@ -1,9 +1,5 @@
 defmodule Ortex.Native do
-  @moduledoc """
-  Documentation for `Ortex.Native`.
-
-  Stubs for `Rustler` NIFs. These should never be called directly.
-  """
+  @moduledoc false
 
   # We have to compile the crate before `use Rustler` compiles the crate since
   # cargo downloads the onnxruntime shared libraries and they are not available
