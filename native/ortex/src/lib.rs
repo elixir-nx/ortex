@@ -71,9 +71,22 @@ fn to_binary<'a>(
     utils::to_binary(env, reference, bits, limit)
 }
 
+#[rustler::nif]
+pub fn slice<'a>(
+    tensor: ResourceArc<OrtexTensor>,
+    start_indicies: Vec<isize>,
+    lengths: Vec<isize>,
+    strides: Vec<isize>,
+) -> NifResult<ResourceArc<OrtexTensor>> {
+    Ok(ResourceArc::new(tensor.slice(
+        start_indicies,
+        lengths,
+        strides,
+    )))
+}
 rustler::init!(
     "Elixir.Ortex.Native",
-    [run, init, from_binary, to_binary, show_session],
+    [run, init, from_binary, to_binary, show_session, slice],
     load = |env: Env, _| {
         rustler::resource!(OrtexModel, env);
         rustler::resource!(OrtexTensor, env);
