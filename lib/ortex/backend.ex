@@ -79,6 +79,12 @@ defmodule Ortex.Backend do
     |> maybe_add_signature(tensor)
   end
 
+  @impl true
+  def slice(out, %T{data: %B{ref: tensor_ref}}, start_indicies, lengths, strides) do
+    r = Ortex.Native.slice(tensor_ref, start_indicies, lengths, strides)
+    put_in(out.data, %Ortex.Backend{ref: r})
+  end
+
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do
     defp maybe_add_signature(result, %T{data: %B{ref: _mat_ref}}) do
       Inspect.Algebra.concat([

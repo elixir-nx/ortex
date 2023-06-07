@@ -1,6 +1,6 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use ndarray::prelude::*;
-use ndarray::Data;
+use ndarray::{ArrayBase, ArrayView, Data, IxDyn};
 use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
 use ort::OrtError;
 use rustler::Atom;
@@ -9,7 +9,8 @@ use crate::constants::ortex_atoms;
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
-/// Enum for wrapping different types to pass back to the BEAM
+/// Enum for wrapping different types to pass back to the BEAM since rustler can't
+/// pass type generics back and forth
 pub enum OrtexTensor {
     s8(Array<i8, IxDyn>),
     s16(Array<i16, IxDyn>),
@@ -96,6 +97,49 @@ impl OrtexTensor {
         };
         contents
     }
+
+    pub fn slice<'a>(
+        &'a self,
+        start_indicies: Vec<isize>,
+        lengths: Vec<isize>,
+        strides: Vec<isize>,
+    ) -> Self {
+        let mut slice_specs: Vec<(isize, Option<isize>, isize)> = vec![];
+        for ((start_index, length), stride) in start_indicies
+            .iter()
+            .zip(lengths.iter())
+            .zip(strides.iter())
+        {
+            slice_specs.push((*start_index, Some(*length + *start_index), *stride));
+        }
+        match self {
+            OrtexTensor::s8(y) => OrtexTensor::s8(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::s16(y) => OrtexTensor::s16(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::s32(y) => OrtexTensor::s32(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::s64(y) => OrtexTensor::s64(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::u8(y) => OrtexTensor::u8(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::u16(y) => OrtexTensor::u16(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::u32(y) => OrtexTensor::u32(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::u64(y) => OrtexTensor::u64(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::f16(y) => OrtexTensor::f16(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::bf16(y) => OrtexTensor::bf16(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::f32(y) => OrtexTensor::f32(slice_array(y, &slice_specs).to_owned()),
+            OrtexTensor::f64(y) => OrtexTensor::f64(slice_array(y, &slice_specs).to_owned()),
+        }
+    }
+}
+
+fn slice_array<'a, T, D>(
+    array: &'a Array<T, D>,
+    slice_specs: &'a Vec<(isize, Option<isize>, isize)>,
+) -> ArrayView<'a, T, D>
+where
+    D: Dimension,
+{
+    array.slice_each_axis(|ax: ndarray::AxisDescription| {
+        let (start, end, step) = slice_specs[ax.axis.index()];
+        ndarray::Slice { start, end, step }
+    })
 }
 
 fn get_bytes<'a, T>(array: &'a ArrayBase<T, IxDyn>) -> &'a [u8]

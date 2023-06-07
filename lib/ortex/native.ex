@@ -21,4 +21,7 @@ defmodule Ortex.Native do
   def from_binary(_bin, _shape, _type), do: :erlang.nif_error(:nif_not_loaded)
   def to_binary(_reference, _bits, _limit), do: :erlang.nif_error(:nif_not_loaded)
   def show_session(_model), do: :erlang.nif_error(:nif_not_loaded)
+
+  def slice(_tensor, _start_indicies, _lengths, _strides),
+    do: :erlang.nif_error(:nif_not_loaded)
 end
