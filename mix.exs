@@ -11,8 +11,8 @@ defmodule Ortex.MixProject do
 
       # Docs
       name: "Ortex",
-      source_url: "https://github.com/relaypro-open/ortex",
-      homepage_url: "http://github.com/relaypro-open/ortex",
+      source_url: "https://github.com/elixir-nx/ortex",
+      homepage_url: "http://github.com/elixir-nx/ortex",
       docs: [
         main: "readme",
         extras: ["README.md"]
@@ -46,7 +46,7 @@ defmodule Ortex.MixProject do
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* native/ortex/src/
         native/ortex/Cargo.lock native/ortex/Cargo.toml native/ortex/.cargo/config.toml),
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/relaypro-open/ortex"},
+      links: %{"GitHub" => "https://github.com/elixir-nx/ortex"},
       description: "ONNX Runtime bindings for Elixir"
     ]
   end
