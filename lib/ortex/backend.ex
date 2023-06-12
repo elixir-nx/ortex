@@ -85,6 +85,11 @@ defmodule Ortex.Backend do
     put_in(out.data, %Ortex.Backend{ref: r})
   end
 
+  @impl true
+  def reshape(out, _tensor) do
+    out
+  end
+
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do
     defp maybe_add_signature(result, %T{data: %B{ref: _mat_ref}}) do
       Inspect.Algebra.concat([
