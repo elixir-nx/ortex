@@ -1,4 +1,5 @@
 defmodule Ortex.TestReshape do
+  # TODO: Fix this, it is not truly validating the reshaping on the ortex side
   use ExUnit.Case
 
   test "1d reshape" do

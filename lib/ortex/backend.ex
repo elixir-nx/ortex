@@ -71,7 +71,6 @@ defmodule Ortex.Backend do
   @impl true
   def inspect(%T{} = tensor, inspect_opts) do
     limit = if inspect_opts.limit == :infinity, do: :infinity, else: inspect_opts.limit + 1
-    # IO.inspect(limit)
 
     tensor
     |> to_binary(min(limit, Nx.size(tensor)))
@@ -82,12 +81,13 @@ defmodule Ortex.Backend do
   @impl true
   def slice(out, %T{data: %B{ref: tensor_ref}}, start_indicies, lengths, strides) do
     r = Ortex.Native.slice(tensor_ref, start_indicies, lengths, strides)
-    put_in(out.data, %Ortex.Backend{ref: r})
+    put_in(out.data, %B{ref: r})
   end
 
   @impl true
-  def reshape(out, _tensor) do
-    out
+  def reshape(out, %T{data: %B{ref: ref}}) do
+    shape = Nx.shape(out) |> Tuple.to_list()
+    put_in(out.data, %B{ref: Ortex.Native.reshape(ref, shape)})
   end
 
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do

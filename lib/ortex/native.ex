@@ -24,4 +24,6 @@ defmodule Ortex.Native do
 
   def slice(_tensor, _start_indicies, _lengths, _strides),
     do: :erlang.nif_error(:nif_not_loaded)
+
+  def reshape(_tensor, _shape), do: :erlang.nif_error(:nif_not_loaded)
 end
