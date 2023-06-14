@@ -84,6 +84,7 @@ pub fn slice<'a>(
         strides,
     )))
 }
+
 #[rustler::nif]
 pub fn reshape<'a>(
     tensor: ResourceArc<OrtexTensor>,
@@ -91,6 +92,7 @@ pub fn reshape<'a>(
 ) -> NifResult<ResourceArc<OrtexTensor>> {
     Ok(ResourceArc::new(tensor.reshape(shape)?))
 }
+
 rustler::init!(
     "Elixir.Ortex.Native",
     [

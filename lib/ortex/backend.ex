@@ -90,6 +90,23 @@ defmodule Ortex.Backend do
     put_in(out.data, %B{ref: Ortex.Native.reshape(ref, shape)})
   end
 
+  @impl true
+  def squeeze(out, tensor, axes) do
+    %T{shape: old_shape, names: names, data: %B{ref: ref}} = tensor
+    {new_shape, new_names} = Nx.Shape.squeeze(old_shape, axes, names)
+
+    if old_shape == new_shape do
+      %{out | data: %B{ref: ref}}
+    else
+      %{
+        out
+        | shape: new_shape,
+          names: new_names,
+          data: %B{ref: Ortex.Native.reshape(ref, new_shape |> Tuple.to_list())}
+      }
+    end
+  end
+
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do
     defp maybe_add_signature(result, %T{data: %B{ref: _mat_ref}}) do
       Inspect.Algebra.concat([
