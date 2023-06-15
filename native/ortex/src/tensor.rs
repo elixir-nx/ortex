@@ -63,6 +63,71 @@ impl OrtexTensor {
         }
     }
 
+    pub fn reshape(&self, shape: Vec<usize>) -> rustler::NifResult<Self> {
+        match self {
+            OrtexTensor::s8(y) => {
+                Ok(OrtexTensor::s8(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::s16(y) => {
+                Ok(OrtexTensor::s16(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::s32(y) => {
+                Ok(OrtexTensor::s32(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::s64(y) => {
+                Ok(OrtexTensor::s64(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::u8(y) => {
+                Ok(OrtexTensor::u8(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::u16(y) => {
+                Ok(OrtexTensor::u16(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::u32(y) => {
+                Ok(OrtexTensor::u32(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::u64(y) => {
+                Ok(OrtexTensor::u64(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::f16(y) => {
+                Ok(OrtexTensor::f16(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::bf16(y) => {
+                Ok(OrtexTensor::bf16(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::f32(y) => {
+                Ok(OrtexTensor::f32(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+            OrtexTensor::f64(y) => {
+                Ok(OrtexTensor::f64(y.clone().into_shape(shape).map_err(
+                    |e| rustler::Error::Term(Box::new(e.to_string())),
+                )?))
+            }
+        }
+    }
+
     pub fn dtype(&self) -> (Atom, usize) {
         match self {
             OrtexTensor::s8(_) => (ortex_atoms::s(), 8),
