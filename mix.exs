@@ -4,7 +4,7 @@ defmodule Ortex.MixProject do
   def project do
     [
       app: :ortex,
-      version: "0.1.6",
+      version: "0.1.7",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -43,7 +43,7 @@ defmodule Ortex.MixProject do
 
   defp package do
     [
-      files: ~w(lib .formatter.exs mix.exs README* LICENSE* native/ortex/src/
+      files: ~w(lib .formatter.exs mix.exs README* LICENSE* native/ortex/src/ config/config.exs
         native/ortex/Cargo.lock native/ortex/Cargo.toml native/ortex/.cargo/config.toml),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/elixir-nx/ortex"},
