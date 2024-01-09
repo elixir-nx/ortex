@@ -107,6 +107,23 @@ defmodule Ortex.Backend do
     end
   end
 
+  @impl true
+  def concatenate(out, tensors, axis) do
+    if not Enum.all?(tensors, fn t -> t.type == out.type end) do
+      raise "Ortex does not currently support concatenation of vectors with differing types."
+    end
+
+    tensor_refs =
+      Enum.map(tensors, fn t ->
+        %T{data: %B{ref: ref}} = t
+        ref
+      end)
+
+    type = out.type
+
+    %{out | data: %B{ref: Ortex.Native.concatenate(tensor_refs, type, axis)}}
+  end
+
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do
     defp maybe_add_signature(result, %T{data: %B{ref: _mat_ref}}) do
       Inspect.Algebra.concat([
