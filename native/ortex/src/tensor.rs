@@ -1,6 +1,6 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use ndarray::prelude::*;
-use ndarray::{ArrayBase, ArrayView, Data, IxDyn};
+use ndarray::{ArrayBase, ArrayView, Data, IxDyn, ViewRepr, IxDynImpl};
 use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
 use ort::OrtError;
 use rustler::resource::ResourceArc;
@@ -28,6 +28,7 @@ pub enum OrtexTensor {
 }
 
 impl From<&OrtexTensor> for InputTensor {
+
     fn from(tensor: &OrtexTensor) -> Self {
         match tensor {
             OrtexTensor::s8(y) => InputTensor::from_array(y.clone().into()),
@@ -282,252 +283,57 @@ impl std::convert::TryFrom<&DynOrtTensor<'_, IxDyn>> for OrtexTensor {
 // Currently only supports concatenating tenors of the same type.
 //
 // This is a similar structure to the above match clauses, except each function
-// in map is more complex and needs to be written out explicitly, see below.
-//
-// Each fn concatenate_{type} verifies to the compiler that the vec<OrtexTensor>
-// all have the same type, and then we can concat easily from there
-//
-// TODO: make the fn concatenate_{type} a macro?
+// in map is more complex and needs to be written out explicitly. To reduce
+// repetition, the concatenate! macro expands that code and makes the necessary
+// minor tweaks
+
+macro_rules! concatenate {
+    // `typ` is the actual datatype, `ort_tensor_kind` is the OrtexTensor variant
+    ($tensors:expr, $axis:expr, $typ:ty, $ort_tensor_kind:ident) =>{
+        {
+            type ArrayType<'a> = ArrayBase<ViewRepr<&'a $typ>, Dim<IxDynImpl>>;
+            fn filter(tensor: &OrtexTensor) -> Option<ArrayType> {
+                match tensor {
+                    OrtexTensor::$ort_tensor_kind(x) => Some(x.view()),
+                    _ => None,
+                }
+            }
+            // hack way to type coalesce. Filters out any ndarray's that don't
+            // have the desired type
+            let tensors: Vec<ArrayType> =
+                $tensors.iter().filter_map(|tensor| { filter(tensor) }).collect();
+
+            let tensors = ndarray::concatenate(Axis($axis), &tensors).unwrap();
+            // data is not contiguous after the concatenation above. To decode
+            // properly, need to create a new contiguous vector
+            let tensors = Array::from_shape_vec(
+                tensors.raw_dim(),
+                tensors.iter().cloned().collect())
+                .unwrap();
+            OrtexTensor::$ort_tensor_kind(tensors)
+        }
+    }
+}
+
 pub fn concatenate(
     tensors: Vec<ResourceArc<OrtexTensor>>,
     dtype: (&str, usize),
     axis: usize,
 ) -> OrtexTensor {
+
     match dtype {
-        ("s", 8) => concatenate_s8(tensors, axis),
-        ("s", 16) => concatenate_s16(tensors, axis),
-        ("s", 32) => concatenate_s32(tensors, axis),
-        ("s", 64) => concatenate_s64(tensors, axis),
-        ("u", 8) => concatenate_u8(tensors, axis),
-        ("u", 16) => concatenate_u16(tensors, axis),
-        ("u", 32) => concatenate_u32(tensors, axis),
-        ("u", 64) => concatenate_u64(tensors, axis),
-        ("f", 16) => concatenate_f16(tensors, axis),
-        ("bf", 16) => concatenate_bf16(tensors, axis),
-        ("f", 32) => concatenate_f32(tensors, axis),
-        ("f", 64) => concatenate_f64(tensors, axis),
+        ("s", 8) => concatenate!(tensors, axis, i8, s8),
+        ("s", 16) => concatenate!(tensors, axis, i16, s16),
+        ("s", 32) => concatenate!(tensors, axis, i32, s32),
+        ("s", 64) => concatenate!(tensors, axis, i64, s64),
+        ("u", 8) => concatenate!(tensors, axis, u8, u8),
+        ("u", 16) => concatenate!(tensors, axis, u16, u16),
+        ("u", 32) => concatenate!(tensors, axis, u32, u32),
+        ("u", 64) => concatenate!(tensors, axis, u64, u64),
+        ("f", 16) => concatenate!(tensors, axis, half::f16, f16),
+        ("bf", 16) => concatenate!(tensors, axis, half::bf16, bf16),
+        ("f", 32) => concatenate!(tensors, axis, f32, f32),
+        ("f", 64) => concatenate!(tensors, axis, f64, f64),
         _ => unimplemented!(),
     }
-}
-
-// each of the below concatenate_{x} functions are identical except for the
-// underlying data-type / OrtexTensor enum
-fn concatenate_s8(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    // very hacky way to type coalesce, filter_map using an option
-    fn filter_s8(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&i8>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::s8(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    // now all tensors have the same type after filter_map()-ing
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&i8>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_s8(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-
-    // because concatenating creates a non-standard data format, we copy the
-    // data into a standard format shape. Otherwise, when converting to a
-    // binary, the tensor's data is not ordered properly
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::s8(x)
-}
-
-fn concatenate_s16(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_s16(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&i16>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::s16(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&i16>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_s16(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::s16(x)
-}
-
-fn concatenate_s32(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_s32(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&i32>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::s32(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&i32>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_s32(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::s32(x)
-}
-
-fn concatenate_s64(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_s64(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&i64>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::s64(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&i64>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_s64(val)).collect();
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::s64(x)
-}
-
-fn concatenate_u8(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_u8(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&u8>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::u8(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&u8>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_u8(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::u8(x)
-}
-
-fn concatenate_u16(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_u16(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&u16>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::u16(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&u16>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_u16(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::u16(x)
-}
-
-fn concatenate_u32(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_u32(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&u32>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::u32(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&u32>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_u32(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::u32(x)
-}
-
-fn concatenate_u64(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_u64(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&u64>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::u64(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&u64>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_u64(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::u64(x)
-}
-
-fn concatenate_f16(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_f16(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&half::f16>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::f16(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&half::f16>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_f16(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::f16(x)
-}
-
-fn concatenate_bf16(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_bf16(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&half::bf16>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::bf16(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&half::bf16>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_bf16(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::bf16(x)
-}
-
-fn concatenate_f32(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_f32(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&f32>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::f32(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&f32>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_f32(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::f32(x)
-}
-
-fn concatenate_f64(tensors: Vec<ResourceArc<OrtexTensor>>, axis: usize) -> OrtexTensor {
-    fn filter_f64(
-        of: &OrtexTensor,
-    ) -> Option<ArrayBase<ndarray::ViewRepr<&f64>, Dim<ndarray::IxDynImpl>>> {
-        match of {
-            OrtexTensor::f64(x) => Some(x.view()),
-            _ => None,
-        }
-    }
-
-    let tensors: Vec<ArrayBase<ndarray::ViewRepr<&f64>, Dim<ndarray::IxDynImpl>>> =
-        tensors.iter().filter_map(|val| filter_f64(val)).collect();
-
-    let x = ndarray::concatenate(Axis(axis), &tensors).unwrap();
-    let x = Array::from_shape_vec(x.raw_dim(), x.iter().cloned().collect()).unwrap();
-    OrtexTensor::f64(x)
 }
