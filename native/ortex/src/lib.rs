@@ -93,6 +93,18 @@ pub fn reshape<'a>(
     Ok(ResourceArc::new(tensor.reshape(shape)?))
 }
 
+#[rustler::nif]
+pub fn concatenate<'a>(
+    tensors: Vec<ResourceArc<OrtexTensor>>,
+    dtype: Term,
+    axis: i32,
+) -> NifResult<ResourceArc<OrtexTensor>> {
+    let (dtype_t, dtype_bits): (Term, usize) = dtype.decode()?;
+    let dtype_str = dtype_t.atom_to_string()?;
+    let concatted = tensor::concatenate(tensors, (&dtype_str, dtype_bits), axis as usize);
+    Ok(ResourceArc::new(concatted))
+}
+
 rustler::init!(
     "Elixir.Ortex.Native",
     [
@@ -102,7 +114,8 @@ rustler::init!(
         to_binary,
         show_session,
         slice,
-        reshape
+        reshape,
+        concatenate
     ],
     load = |env: Env, _| {
         rustler::resource!(OrtexModel, env);

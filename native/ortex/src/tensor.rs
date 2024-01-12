@@ -1,8 +1,9 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use ndarray::prelude::*;
-use ndarray::{ArrayBase, ArrayView, Data, IxDyn};
+use ndarray::{ArrayBase, ArrayView, Data, IxDyn, IxDynImpl, ViewRepr};
 use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
 use ort::OrtError;
+use rustler::resource::ResourceArc;
 use rustler::Atom;
 
 use crate::constants::ortex_atoms;
@@ -275,5 +276,60 @@ impl std::convert::TryFrom<&DynOrtTensor<'_, IxDyn>> for OrtexTensor {
             }
             TensorElementDataType::String | TensorElementDataType::Bool => todo!(),
         }
+    }
+}
+
+// Currently only supports concatenating tenors of the same type.
+//
+// This is a similar structure to the above match clauses, except each function
+// in map is more complex and needs to be written out explicitly. To reduce
+// repetition, the concatenate! macro expands that code and makes the necessary
+// minor tweaks
+
+macro_rules! concatenate {
+    // `typ` is the actual datatype, `ort_tensor_kind` is the OrtexTensor variant
+    ($tensors:expr, $axis:expr, $typ:ty, $ort_tensor_kind:ident) => {{
+        type ArrayType<'a> = ArrayBase<ViewRepr<&'a $typ>, Dim<IxDynImpl>>;
+        fn filter(tensor: &OrtexTensor) -> Option<ArrayType> {
+            match tensor {
+                OrtexTensor::$ort_tensor_kind(x) => Some(x.view()),
+                _ => None,
+            }
+        }
+        // hack way to type coalesce. Filters out any ndarray's that don't
+        // have the desired type
+        let tensors: Vec<ArrayType> = $tensors
+            .iter()
+            .filter_map(|tensor| filter(tensor))
+            .collect();
+
+        let tensors = ndarray::concatenate(Axis($axis), &tensors).unwrap();
+        // data is not contiguous after the concatenation above. To decode
+        // properly, need to create a new contiguous vector
+        let tensors =
+            Array::from_shape_vec(tensors.raw_dim(), tensors.iter().cloned().collect()).unwrap();
+        OrtexTensor::$ort_tensor_kind(tensors)
+    }};
+}
+
+pub fn concatenate(
+    tensors: Vec<ResourceArc<OrtexTensor>>,
+    dtype: (&str, usize),
+    axis: usize,
+) -> OrtexTensor {
+    match dtype {
+        ("s", 8) => concatenate!(tensors, axis, i8, s8),
+        ("s", 16) => concatenate!(tensors, axis, i16, s16),
+        ("s", 32) => concatenate!(tensors, axis, i32, s32),
+        ("s", 64) => concatenate!(tensors, axis, i64, s64),
+        ("u", 8) => concatenate!(tensors, axis, u8, u8),
+        ("u", 16) => concatenate!(tensors, axis, u16, u16),
+        ("u", 32) => concatenate!(tensors, axis, u32, u32),
+        ("u", 64) => concatenate!(tensors, axis, u64, u64),
+        ("f", 16) => concatenate!(tensors, axis, half::f16, f16),
+        ("bf", 16) => concatenate!(tensors, axis, half::bf16, bf16),
+        ("f", 32) => concatenate!(tensors, axis, f32, f32),
+        ("f", 64) => concatenate!(tensors, axis, f64, f64),
+        _ => unimplemented!(),
     }
 }
