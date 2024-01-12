@@ -1,6 +1,6 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use ndarray::prelude::*;
-use ndarray::{ArrayBase, ArrayView, Data, IxDyn, ViewRepr, IxDynImpl};
+use ndarray::{ArrayBase, ArrayView, Data, IxDyn, IxDynImpl, ViewRepr};
 use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
 use ort::OrtError;
 use rustler::resource::ResourceArc;
@@ -28,7 +28,6 @@ pub enum OrtexTensor {
 }
 
 impl From<&OrtexTensor> for InputTensor {
-
     fn from(tensor: &OrtexTensor) -> Self {
         match tensor {
             OrtexTensor::s8(y) => InputTensor::from_array(y.clone().into()),
@@ -289,30 +288,28 @@ impl std::convert::TryFrom<&DynOrtTensor<'_, IxDyn>> for OrtexTensor {
 
 macro_rules! concatenate {
     // `typ` is the actual datatype, `ort_tensor_kind` is the OrtexTensor variant
-    ($tensors:expr, $axis:expr, $typ:ty, $ort_tensor_kind:ident) =>{
-        {
-            type ArrayType<'a> = ArrayBase<ViewRepr<&'a $typ>, Dim<IxDynImpl>>;
-            fn filter(tensor: &OrtexTensor) -> Option<ArrayType> {
-                match tensor {
-                    OrtexTensor::$ort_tensor_kind(x) => Some(x.view()),
-                    _ => None,
-                }
+    ($tensors:expr, $axis:expr, $typ:ty, $ort_tensor_kind:ident) => {{
+        type ArrayType<'a> = ArrayBase<ViewRepr<&'a $typ>, Dim<IxDynImpl>>;
+        fn filter(tensor: &OrtexTensor) -> Option<ArrayType> {
+            match tensor {
+                OrtexTensor::$ort_tensor_kind(x) => Some(x.view()),
+                _ => None,
             }
-            // hack way to type coalesce. Filters out any ndarray's that don't
-            // have the desired type
-            let tensors: Vec<ArrayType> =
-                $tensors.iter().filter_map(|tensor| { filter(tensor) }).collect();
-
-            let tensors = ndarray::concatenate(Axis($axis), &tensors).unwrap();
-            // data is not contiguous after the concatenation above. To decode
-            // properly, need to create a new contiguous vector
-            let tensors = Array::from_shape_vec(
-                tensors.raw_dim(),
-                tensors.iter().cloned().collect())
-                .unwrap();
-            OrtexTensor::$ort_tensor_kind(tensors)
         }
-    }
+        // hack way to type coalesce. Filters out any ndarray's that don't
+        // have the desired type
+        let tensors: Vec<ArrayType> = $tensors
+            .iter()
+            .filter_map(|tensor| filter(tensor))
+            .collect();
+
+        let tensors = ndarray::concatenate(Axis($axis), &tensors).unwrap();
+        // data is not contiguous after the concatenation above. To decode
+        // properly, need to create a new contiguous vector
+        let tensors =
+            Array::from_shape_vec(tensors.raw_dim(), tensors.iter().cloned().collect()).unwrap();
+        OrtexTensor::$ort_tensor_kind(tensors)
+    }};
 }
 
 pub fn concatenate(
@@ -320,7 +317,6 @@ pub fn concatenate(
     dtype: (&str, usize),
     axis: usize,
 ) -> OrtexTensor {
-
     match dtype {
         ("s", 8) => concatenate!(tensors, axis, i8, s8),
         ("s", 16) => concatenate!(tensors, axis, i16, s16),

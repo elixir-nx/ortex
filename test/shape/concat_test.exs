@@ -129,22 +129,4 @@ defmodule Ortex.TestConcat do
                    _err = Nx.concatenate([t1, t2])
                  end
   end
-
-  # Ignoring these tests, as Nx.Shape takes care of determining if the shape is valid
-
-  # test "Concat fails to concat vectors with invalid default axis" do
-  #   assert_raise ArgumentError, "expected all shapes to match {*, 5, 7}, got unmatching shape: {2, 4, 7}", fn() -> 
-  #     t1 = Nx.iota({3, 5, 7}) |> Nx.backend_transfer(Ortex.Backend)
-  #     t2 = Nx.iota({2, 4, 7}) |> Nx.backend_transfer(Ortex.Backend)
-  #     _err = Nx.concatenate([t1, t2])
-  #   end
-  # end
-
-  # test "Concat fails to concat vectors with invalid provided axis" do
-  #   assert_raise ArgumentError, "different dims, given axis" do 
-  #     t1 = Nx.iota({3, 5, 7}) |> Nx.backend_transfer(Ortex.Backend)
-  #     t2 = Nx.iota({2, 4, 7}) |> Nx.backend_transfer(Ortex.Backend)
-  #     _err = Nx.concatenate([t1, t2], axis: 2)
-  #   end
-  # end
 end
