@@ -1,8 +1,8 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
+use core::convert::TryFrom;
 use ndarray::prelude::*;
 use ndarray::{ArrayBase, ArrayView, Data, IxDyn, IxDynImpl, ViewRepr};
-use ort::tensor::{DynOrtTensor, FromArray, InputTensor, TensorElementDataType};
-use ort::OrtError;
+use ort::{Error, Value};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
@@ -25,25 +25,6 @@ pub enum OrtexTensor {
     bf16(Array<half::bf16, IxDyn>),
     f32(Array<f32, IxDyn>),
     f64(Array<f64, IxDyn>),
-}
-
-impl From<&OrtexTensor> for InputTensor {
-    fn from(tensor: &OrtexTensor) -> Self {
-        match tensor {
-            OrtexTensor::s8(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::s16(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::s32(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::s64(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::u8(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::u16(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::u32(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::u64(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::f16(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::bf16(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::f32(y) => InputTensor::from_array(y.clone().into()),
-            OrtexTensor::f64(y) => InputTensor::from_array(y.clone().into()),
-        }
-    }
 }
 
 impl OrtexTensor {
@@ -219,62 +200,106 @@ where
     unsafe { std::slice::from_raw_parts(array.as_ptr() as *const u8, len * size) }
 }
 
-impl std::convert::TryFrom<&DynOrtTensor<'_, IxDyn>> for OrtexTensor {
-    type Error = OrtError;
-    fn try_from(e: &DynOrtTensor<IxDyn>) -> Result<OrtexTensor, Self::Error> {
-        let dtype = e.data_type();
+impl TryFrom<&Value> for OrtexTensor {
+    type Error = Error;
+    fn try_from(e: &Value) -> Result<Self, Self::Error> {
+        let dtype = e.tensor_element_type().unwrap();
         match dtype {
             // TODO: Pull this out into an impl for each OrtexTensor type or some other
             // function to be more DRY
-            TensorElementDataType::Float16 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Float16 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f16(tensor))
             }
-            TensorElementDataType::Bfloat16 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Bfloat16 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::bf16(tensor))
             }
-            TensorElementDataType::Float32 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Float32 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f32(tensor))
             }
-            TensorElementDataType::Float64 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Float64 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f64(tensor))
             }
-            TensorElementDataType::Int8 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Int8 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s8(tensor))
             }
-            TensorElementDataType::Int16 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Int16 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s16(tensor))
             }
-            TensorElementDataType::Int32 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Int32 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s32(tensor))
             }
-            TensorElementDataType::Int64 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Int64 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s64(tensor))
             }
-            TensorElementDataType::Uint8 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Uint8 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u8(tensor))
             }
-            TensorElementDataType::Uint16 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Uint16 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u16(tensor))
             }
-            TensorElementDataType::Uint32 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Uint32 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u32(tensor))
             }
-            TensorElementDataType::Uint64 => {
-                let tensor = e.try_extract()?.view().to_owned();
+            ort::TensorElementType::Uint64 => {
+                let tensor = e.extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u64(tensor))
             }
-            TensorElementDataType::String | TensorElementDataType::Bool => todo!(),
+            ort::TensorElementType::String | ort::TensorElementType::Bool => todo!(),
+        }
+    }
+}
+
+impl TryFrom<&OrtexTensor> for Value {
+    type Error = Error;
+    fn try_from(tensor: &OrtexTensor) -> Result<Self, Self::Error> {
+        match tensor {
+            OrtexTensor::s8(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::s16(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::s32(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::s64(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::f16(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::f32(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::f64(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::bf16(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::u8(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::u16(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::u32(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
+            OrtexTensor::u64(t) => {
+                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
+            }
         }
     }
 }
