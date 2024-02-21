@@ -11,17 +11,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rustler = "0.29.0"
-ort = {version = "1.14.6", default-features = false, features = ["half", "copy-dylibs"]}
+ort = { version = "2.0.0-rc.0" }
 ndarray = "0.15.6"
 half = "2.2.1"
 tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
 num-traits = "0.2.15"
 
 [features]
-default = ["download-binaries"]
-
-download-binaries = ["ort/download-binaries"]
-
 # ONNXRuntime Execution providers
 directml = ["ort/directml"]
 coreml = ["ort/coreml"]

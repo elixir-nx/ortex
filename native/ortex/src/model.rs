@@ -10,22 +10,16 @@
 
 use crate::tensor::OrtexTensor;
 use crate::utils::map_opt_level;
+use std::convert::{Into, TryFrom};
 
-use std::convert::TryFrom;
-use std::sync::Arc;
-
-use ort::{
-    environment, execution_providers::ExecutionProvider, session::SessionBuilder,
-    tensor::InputTensor, LoggingLevel, OrtError,
-};
+use ort::{Error, ExecutionProviderDispatch, Session, Value};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
 /// Holds the model state which include onnxruntime session and environment. All
 /// are threadsafe so this can be called concurrently from the beam.
 pub struct OrtexModel {
-    pub env: Arc<environment::Environment>,
-    pub session: ort::session::Session,
+    pub session: ort::Session,
 }
 
 // Since we're only using the session for inference and
@@ -38,26 +32,22 @@ unsafe impl Sync for OrtexModel {}
 /// The execution providers are Atoms from Erlang/Elixir.
 pub fn init(
     model_path: String,
-    eps: Vec<ExecutionProvider>,
+    eps: Vec<ExecutionProviderDispatch>,
     opt: i32,
-) -> Result<OrtexModel, OrtError> {
+) -> Result<OrtexModel, Error> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
-    let environment = environment::Environment::builder()
+    ort::init()
+        .with_execution_providers(&eps)
         .with_name("ortex-model")
-        .with_log_level(LoggingLevel::Verbose)
-        .build()?
-        .into_arc();
+        .commit()?;
 
-    let session = SessionBuilder::new(&environment)?
-        .with_execution_providers(eps)?
+    let session = Session::builder()?
+        .with_execution_providers(&eps)?
         .with_optimization_level(map_opt_level(opt))?
         .with_model_from_file(model_path)?;
 
-    let state = OrtexModel {
-        env: environment.to_owned(),
-        session,
-    };
+    let state = OrtexModel { session };
     Ok(state)
 }
 
@@ -67,39 +57,28 @@ pub fn init(
 pub fn show(
     model: ResourceArc<OrtexModel>,
 ) -> (
-    Vec<(String, String, Vec<Option<u32>>)>,
-    Vec<(String, String, Vec<Option<u32>>)>,
+    Vec<(String, String, Option<Vec<i64>>)>,
+    Vec<(String, String, Option<Vec<i64>>)>,
 ) {
-    let inputs: Vec<(String, String, Vec<Option<u32>>)> = model
-        .session
-        .inputs
-        .iter()
-        .map(|i| {
-            let inp_type = i.input_type;
-            let dims = &i.dimensions;
-            (
-                i.name.to_string(),
-                format!("{inp_type:#?}"),
-                dims.to_owned(),
-            )
-        })
-        .collect();
-    let outputs: Vec<(String, String, Vec<Option<u32>>)> = model
-        .session
-        .outputs
-        .iter()
-        .map(|i| {
-            let out_type = i.output_type;
-            let dims = &i.dimensions;
-            (
-                i.name.to_string(),
-                format!("{out_type:#?}"),
-                dims.to_owned(),
-            )
-        })
-        .collect();
+    let model: &OrtexModel = &*model;
 
-    (inputs.into(), outputs.into())
+    let mut inputs = Vec::new();
+    for input in model.session.inputs.iter() {
+        let name = input.name.to_string();
+        let repr = format!("{:#?}", input.input_type);
+        let dims = Option::<&Vec<i64>>::cloned(input.input_type.tensor_dimensions());
+        inputs.push((name, repr, dims));
+    }
+
+    let mut outputs = Vec::new();
+    for output in model.session.outputs.iter() {
+        let name = output.name.to_string();
+        let repr = format!("{:#?}", output.output_type);
+        let dims = Option::<&Vec<i64>>::cloned(output.output_type.tensor_dimensions());
+        outputs.push((name, repr, dims));
+    }
+
+    (inputs, outputs)
 }
 
 /// Runs the model with the given inputs. Returns a vector of tensors. Use `model::show`
@@ -107,26 +86,27 @@ pub fn show(
 pub fn run(
     model: ResourceArc<OrtexModel>,
     inputs: Vec<ResourceArc<OrtexTensor>>,
-) -> Result<Vec<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize)>, OrtError> {
-    let final_input: Vec<InputTensor> =
-        inputs.into_iter().map(|x| InputTensor::from(&*x)).collect();
+) -> Result<Vec<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize)>, Error> {
+    // TODO: can we handle an error more elegantly than just .unwrap()?
+    let final_input: Vec<Value> = inputs
+        .into_iter()
+        .map(|x| Value::try_from(&*x).unwrap())
+        .collect();
 
     // Grab the session and run a forward pass with it
     let session = &model.session;
 
     // Construct a Vec of ModelOutput enums based on the DynOrtTensor data type
-    let result: Result<Vec<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize)>, OrtError> =
-        session
-            .run(final_input)?
-            .iter()
-            .map(
-                |e| -> Result<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize), OrtError> {
-                    let ortextensor = OrtexTensor::try_from(e)?;
-                    let shape = ortextensor.shape();
-                    let (dtype, bits) = ortextensor.dtype();
-                    Ok((ResourceArc::new(ortextensor), shape, dtype, bits))
-                },
-            )
-            .collect();
-    result
+    let outputs = session.run(&final_input[..])?;
+
+    outputs
+        .iter()
+        .map(|(_name, val)| {
+            let val: &Value = val;
+            let ortextensor: OrtexTensor = OrtexTensor::try_from(val)?;
+            let shape = ortextensor.shape();
+            let (dtype, bits) = ortextensor.dtype();
+            Ok((ResourceArc::new(ortextensor), shape, dtype, bits))
+        })
+        .collect()
 }

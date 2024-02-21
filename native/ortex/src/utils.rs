@@ -11,7 +11,7 @@ use rustler::resource::ResourceArc;
 use rustler::types::Binary;
 use rustler::{Atom, Env, NifResult};
 
-use ort::{ExecutionProvider, GraphOptimizationLevel};
+use ort::{ExecutionProviderDispatch, GraphOptimizationLevel};
 
 /// A faster (unsafe) way of creating an Array from an Erlang binary
 fn initialize_from_raw_ptr<T>(ptr: *const T, shape: &[Ix]) -> ArrayViewMut<T, IxDyn> {
@@ -91,19 +91,18 @@ pub fn to_binary<'a>(
 }
 
 /// Takes a vec of Atoms and transforms them into a vec of ExecutionProvider Enums
-pub fn map_eps(env: rustler::env::Env, eps: Vec<Atom>) -> Vec<ExecutionProvider> {
+pub fn map_eps(env: rustler::env::Env, eps: Vec<Atom>) -> Vec<ExecutionProviderDispatch> {
     eps.iter()
         .map(|e| match &e.to_term(env).atom_to_string().unwrap()[..] {
-            CPU => ExecutionProvider::cpu(),
-            CUDA => ExecutionProvider::cuda(),
-            TENSORRT => ExecutionProvider::tensorrt(),
-            ACL => ExecutionProvider::acl(),
-            DNNL => ExecutionProvider::dnnl(),
-            ONEDNN => ExecutionProvider::onednn(),
-            COREML => ExecutionProvider::coreml(),
-            DIRECTML => ExecutionProvider::directml(),
-            ROCM => ExecutionProvider::rocm(),
-            _ => ExecutionProvider::cpu(),
+            CPU => ort::CPUExecutionProvider::default().build(),
+            CUDA => ort::CUDAExecutionProvider::default().build(),
+            TENSORRT => ort::TensorRTExecutionProvider::default().build(),
+            ACL => ort::ACLExecutionProvider::default().build(),
+            ONEDNN => ort::OneDNNExecutionProvider::default().build(),
+            COREML => ort::CoreMLExecutionProvider::default().build(),
+            DIRECTML => ort::DirectMLExecutionProvider::default().build(),
+            ROCM => ort::ROCmExecutionProvider::default().build(),
+            _ => ort::CPUExecutionProvider::default().build(),
         })
         .collect()
 }

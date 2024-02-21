@@ -34,8 +34,8 @@ fn init(
 fn show_session(
     model: ResourceArc<model::OrtexModel>,
 ) -> NifResult<(
-    Vec<(String, String, Vec<Option<u32>>)>,
-    Vec<(String, String, Vec<Option<u32>>)>,
+    Vec<(String, String, Option<Vec<i64>>)>,
+    Vec<(String, String, Option<Vec<i64>>)>,
 )> {
     Ok(model::show(model))
 }

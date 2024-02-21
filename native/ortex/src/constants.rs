@@ -2,7 +2,6 @@ pub const CUDA: &str = "cuda";
 pub const CPU: &str = "cpu";
 pub const TENSORRT: &str = "tensorrt";
 pub const ACL: &str = "acl";
-pub const DNNL: &str = "dnnl";
 pub const ONEDNN: &str = "onednn";
 pub const COREML: &str = "coreml";
 pub const DIRECTML: &str = "directml";
