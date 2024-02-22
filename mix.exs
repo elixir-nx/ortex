@@ -31,7 +31,7 @@ defmodule Ortex.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:rustler, "~> 0.29.0"},
+      {:rustler, "~> 0.31.0"},
       {:nx, "~> 0.6"},
       {:tokenizers, "~> 0.4", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
