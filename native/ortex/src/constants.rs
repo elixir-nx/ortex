@@ -1,12 +1,3 @@
-pub const CUDA: &str = "cuda";
-pub const CPU: &str = "cpu";
-pub const TENSORRT: &str = "tensorrt";
-pub const ACL: &str = "acl";
-pub const ONEDNN: &str = "onednn";
-pub const COREML: &str = "coreml";
-pub const DIRECTML: &str = "directml";
-pub const ROCM: &str = "rocm";
-
 pub mod ortex_atoms {
     rustler::atoms! {
         // Tensor types available

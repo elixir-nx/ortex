@@ -1,7 +1,6 @@
 //! Serialization and deserialization to transfer between Ortex and BinaryBackend
 //! [Nx](https://hexdocs.pm/nx) backend.
 
-use crate::constants::*;
 use crate::tensor::OrtexTensor;
 use ndarray::{ArrayViewMut, Ix, IxDyn};
 
@@ -9,9 +8,7 @@ use ndarray::ShapeError;
 
 use rustler::resource::ResourceArc;
 use rustler::types::Binary;
-use rustler::{Atom, Env, NifResult};
-
-use ort::{ExecutionProviderDispatch, GraphOptimizationLevel};
+use rustler::{Env, NifResult};
 
 /// A faster (unsafe) way of creating an Array from an Erlang binary
 fn initialize_from_raw_ptr<T>(ptr: *const T, shape: &[Ix]) -> ArrayViewMut<T, IxDyn> {
@@ -88,31 +85,4 @@ pub fn to_binary<'a>(
     _limit: usize,
 ) -> NifResult<Binary<'a>> {
     Ok(reference.make_binary(env, |x| x.to_bytes()))
-}
-
-/// Takes a vec of Atoms and transforms them into a vec of ExecutionProvider Enums
-pub fn map_eps(env: rustler::env::Env, eps: Vec<Atom>) -> Vec<ExecutionProviderDispatch> {
-    eps.iter()
-        .map(|e| match &e.to_term(env).atom_to_string().unwrap()[..] {
-            CPU => ort::CPUExecutionProvider::default().build(),
-            CUDA => ort::CUDAExecutionProvider::default().build(),
-            TENSORRT => ort::TensorRTExecutionProvider::default().build(),
-            ACL => ort::ACLExecutionProvider::default().build(),
-            ONEDNN => ort::OneDNNExecutionProvider::default().build(),
-            COREML => ort::CoreMLExecutionProvider::default().build(),
-            DIRECTML => ort::DirectMLExecutionProvider::default().build(),
-            ROCM => ort::ROCmExecutionProvider::default().build(),
-            _ => ort::CPUExecutionProvider::default().build(),
-        })
-        .collect()
-}
-
-/// Take an optimization level and returns the
-pub fn map_opt_level(opt: i32) -> GraphOptimizationLevel {
-    match opt {
-        1 => GraphOptimizationLevel::Level1,
-        2 => GraphOptimizationLevel::Level2,
-        3 => GraphOptimizationLevel::Level3,
-        _ => GraphOptimizationLevel::Disable,
-    }
 }

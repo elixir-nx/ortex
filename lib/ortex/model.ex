@@ -17,13 +17,14 @@ defmodule Ortex.Model do
 
   `nil` values represent dynamic dimensions
   """
+  alias Ortex.Native
 
   @enforce_keys [:reference]
   defstruct [:reference]
 
   @doc false
   def load(path, eps \\ [:cpu], opt \\ 3) do
-    case Ortex.Native.init(path, eps, opt) do
+    case Ortex.Native.init(path, map_eps(eps), opt) do
       {:error, msg} ->
         raise msg
 
@@ -63,6 +64,34 @@ defmodule Ortex.Model do
       }
     end)
     |> List.to_tuple()
+  end
+
+  defp map_eps(eps) do
+    Enum.map(eps, fn ep -> map_ep(ep) end)
+  end
+
+  defp map_ep(:cpu) do
+    Native.make_cpu_ep(%Ortex.CPUExecutionProvider{})
+  end
+
+  defp map_ep(:cuda) do
+    Native.make_cuda_ep(%Ortex.CUDAExecutionProvider{})
+  end
+
+  defp map_ep(:tensorrt) do
+    Native.make_tensorrt_ep(%Ortex.TensorRTExecutionProvider{})
+  end
+
+  defp map_ep(%Ortex.CPUExecutionProvider{} = ep) do
+    Native.make_cpu_ep(ep)
+  end
+
+  defp map_ep(%Ortex.CUDAExecutionProvider{} = ep) do
+    Native.make_cuda_ep(ep)
+  end
+
+  defp map_ep(%Ortex.TensorRTExecutionProvider{} = ep) do
+    Native.make_tensorrt_ep(ep)
   end
 end
 

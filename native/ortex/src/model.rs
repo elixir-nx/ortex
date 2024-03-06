@@ -8,11 +8,11 @@
 //! let (inputs, outputs) = show(model)?;
 //! ```
 
+use crate::execution_providers::{self, map_opt_level, OrtexExecutionProvider};
 use crate::tensor::OrtexTensor;
-use crate::utils::map_opt_level;
-use std::convert::{Into, TryFrom};
+use std::convert::TryFrom;
 
-use ort::{Error, ExecutionProviderDispatch, Session, Value};
+use ort::{Error, Session, Value};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
@@ -32,18 +32,13 @@ unsafe impl Sync for OrtexModel {}
 /// The execution providers are Atoms from Erlang/Elixir.
 pub fn init(
     model_path: String,
-    eps: Vec<ExecutionProviderDispatch>,
+    eps: Vec<ResourceArc<OrtexExecutionProvider>>,
     opt: i32,
 ) -> Result<OrtexModel, Error> {
-    // TODO: send tracing logs to erlang/elixir _somehow_
-    // tracing_subscriber::fmt::init();
-    ort::init()
-        .with_execution_providers(&eps)
-        .with_name("ortex-model")
-        .commit()?;
+    let builder = Session::builder()?;
 
-    let session = Session::builder()?
-        .with_execution_providers(&eps)?
+    execution_providers::register_eps(&builder, eps);
+    let session = builder
         .with_optimization_level(map_opt_level(opt))?
         .with_model_from_file(model_path)?;
 

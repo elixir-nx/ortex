@@ -5,10 +5,15 @@
 //! directly.
 
 mod constants;
+mod execution_providers;
 mod model;
 mod tensor;
 mod utils;
 
+use execution_providers::{
+    OrtexCPUExecutionProvider, OrtexCUDAExecutionProvider, OrtexExecutionProvider,
+    OrtexTensorRTExecutionProvider,
+};
 use model::OrtexModel;
 use tensor::OrtexTensor;
 
@@ -18,12 +23,10 @@ use rustler::{Atom, Env, NifResult, Term};
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn init(
-    env: Env,
     model_path: String,
-    eps: Vec<Atom>,
+    eps: Vec<ResourceArc<OrtexExecutionProvider>>,
     opt: i32,
 ) -> NifResult<ResourceArc<model::OrtexModel>> {
-    let eps = utils::map_eps(env, eps);
     Ok(ResourceArc::new(
         model::init(model_path, eps, opt)
             .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
@@ -115,11 +118,18 @@ rustler::init!(
         show_session,
         slice,
         reshape,
-        concatenate
+        concatenate,
+        execution_providers::make_cpu_ep,
+        execution_providers::make_cuda_ep,
+        execution_providers::make_tensorrt_ep,
     ],
     load = |env: Env, _| {
         rustler::resource!(OrtexModel, env);
         rustler::resource!(OrtexTensor, env);
+        rustler::resource!(OrtexExecutionProvider, env);
+        rustler::resource!(OrtexCPUExecutionProvider, env);
+        rustler::resource!(OrtexCUDAExecutionProvider, env);
+        rustler::resource!(OrtexTensorRTExecutionProvider, env);
         true
     }
 );
