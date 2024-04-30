@@ -203,56 +203,56 @@ where
 impl TryFrom<&Value> for OrtexTensor {
     type Error = Error;
     fn try_from(e: &Value) -> Result<Self, Self::Error> {
-        let dtype = e.tensor_element_type().unwrap();
+        let dtype = e.dtype()?.tensor_type().unwrap();
         match dtype {
             // TODO: Pull this out into an impl for each OrtexTensor type or some other
             // function to be more DRY
             ort::TensorElementType::Float16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f16(tensor))
             }
             ort::TensorElementType::Bfloat16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::bf16(tensor))
             }
             ort::TensorElementType::Float32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f32(tensor))
             }
             ort::TensorElementType::Float64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::f64(tensor))
             }
             ort::TensorElementType::Int8 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s8(tensor))
             }
             ort::TensorElementType::Int16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s16(tensor))
             }
             ort::TensorElementType::Int32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s32(tensor))
             }
             ort::TensorElementType::Int64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::s64(tensor))
             }
             ort::TensorElementType::Uint8 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u8(tensor))
             }
             ort::TensorElementType::Uint16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u16(tensor))
             }
             ort::TensorElementType::Uint32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u32(tensor))
             }
             ort::TensorElementType::Uint64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
+                let tensor = e.try_extract_tensor()?.view().to_owned();
                 Ok(OrtexTensor::u64(tensor))
             }
             ort::TensorElementType::String | ort::TensorElementType::Bool => todo!(),

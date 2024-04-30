@@ -2,7 +2,7 @@
 name = "ortex"
 version = "0.1.0"
 authors = []
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "ortex"
@@ -10,12 +10,12 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-rustler = "0.29.0"
-ort = { version = "2.0.0-rc.0" }
+rustler = "0.32.1"
+ort = { version = "2.0.0-rc.2" }
 ndarray = "0.15.6"
-half = "2.2.1"
-tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
-num-traits = "0.2.15"
+half = "2.4.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+num-traits = "0.2.18"
 
 [features]
 # ONNXRuntime Execution providers
@@ -23,3 +23,22 @@ directml = ["ort/directml"]
 coreml = ["ort/coreml"]
 cuda = ["ort/cuda"]
 tensorrt = ["ort/tensorrt"]
+
+
+# [package]
+# name = "hello"
+# version = "0.1.0"
+# authors = []
+# edition = "2021"
+
+# [lib]
+# name = "hello"
+# path = "src/lib.rs"
+# crate-type = ["cdylib"]
+
+# [dependencies]
+# anyhow = "1.0.82"
+# half = "2.4.1"
+# ndarray = "0.15.6"
+# ort = { version = "2.0.0-rc.2" }
+# rustler = "0.32.1"

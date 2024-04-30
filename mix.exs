@@ -31,12 +31,12 @@ defmodule Ortex.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:rustler, "~> 0.29.0"},
-      {:nx, "~> 0.6"},
+      {:rustler, "0.32.1"},
+      {:nx, "~> 0.7"},
       {:tokenizers, "~> 0.4", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
       {:exla, "~> 0.6", only: :dev},
-      {:torchx, "~> 0.6", only: :dev}
+      {:torchx, "~> 0.7", only: :dev}
     ]
   end
 
