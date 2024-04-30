@@ -1,16 +1,21 @@
 [profile.dev]
-rpath=true
+rpath = true
 
 [profile.release]
-rpath=true
+rpath = true
 
 [target.'cfg(target_os = "macos")']
 rustflags = [
-    "-C", "link-arg=-undefined",
-    "-C", "link-arg=dynamic_lookup",
-    "-C", "link-args=-Wl,-rpath,@loader_path",
+    "-C",
+    "link-arg=-undefined",
+    "-C",
+    "link-arg=dynamic_lookup",
+    "-C",
+    "link-arg=-fapple-link-rtlib",
+    "-C",
+    "link-args=-Wl,-rpath,@loader_path",
 ]
 [target.x86_64-unknown-linux-gnu]
-rustflags = [ "-Clink-args=-Wl,-rpath,$ORIGIN" ]
+rustflags = ["-Clink-args=-Wl,-rpath,$ORIGIN"]
 [target.aarch64-unknown-linux-gnu]
-rustflags = [ "-Clink-args=-Wl,-rpath,$ORIGIN" ]
+rustflags = ["-Clink-args=-Wl,-rpath,$ORIGIN"]
