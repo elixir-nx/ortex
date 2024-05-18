@@ -10,9 +10,9 @@
 
 use crate::tensor::OrtexTensor;
 use crate::utils::map_opt_level;
-use std::convert::{Into, TryFrom};
+use std::convert::TryFrom;
 
-use ort::{Error, ExecutionProviderDispatch, Session, Value};
+use ort::{Error, ExecutionProviderDispatch, Session, SessionInputValue, Value};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
@@ -43,9 +43,8 @@ pub fn init(
         .commit()?;
 
     let session = Session::builder()?
-        .with_execution_providers(&eps)?
         .with_optimization_level(map_opt_level(opt))?
-        .with_model_from_file(model_path)?;
+        .commit_from_file(model_path)?;
 
     let state = OrtexModel { session };
     Ok(state)
@@ -88,9 +87,9 @@ pub fn run(
     inputs: Vec<ResourceArc<OrtexTensor>>,
 ) -> Result<Vec<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize)>, Error> {
     // TODO: can we handle an error more elegantly than just .unwrap()?
-    let final_input: Vec<Value> = inputs
+    let final_input: Vec<SessionInputValue> = inputs
         .into_iter()
-        .map(|x| Value::try_from(&*x).unwrap())
+        .map(|x| SessionInputValue::Owned(Value::try_from(&*x).unwrap()))
         .collect();
 
     // Grab the session and run a forward pass with it
