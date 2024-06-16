@@ -10,7 +10,8 @@ defmodule Ortex.Native do
 
   use Rustler,
     otp_app: :ortex,
-    crate: :ortex
+    crate: :ortex,
+    skip_compilation?: true
 
   # When loading a NIF module, dummy clauses for all NIF function are required.
   # NIF dummies usually just error out when called when the NIF is not loaded, as that should never normally happen.
