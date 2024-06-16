@@ -1,11 +1,21 @@
 defmodule Ortex.Native do
   @moduledoc false
 
+  @rustler_version Application.spec(:rustler, :vsn) |> to_string() |> Version.parse!()
+
   # We have to compile the crate before `use Rustler` compiles the crate since
   # cargo downloads the onnxruntime shared libraries and they are not available
   # to load or copy into Elixir's during the on_load or Elixir compile steps.
   # In the future, this may be configurable in Rustler.
-  Rustler.Compiler.compile_crate(__MODULE__, otp_app: :ortex, crate: :ortex)
+  if Version.compare(@rustler_version, "0.30.0") in [:gt, :eq] do
+    Rustler.Compiler.compile_crate(:ortex, Application.compile_env(:ortex, __MODULE__, []),
+      otp_app: :ortex,
+      crate: :ortex
+    )
+  else
+    Rustler.Compiler.compile_crate(__MODULE__, otp_app: :ortex, crate: :ortex)
+  end
+
   Ortex.Util.copy_ort_libs()
 
   use Rustler,
