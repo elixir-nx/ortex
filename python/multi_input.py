@@ -37,4 +37,5 @@ torch.onnx.export(
         "x": {0: "batch_size"},
         "y": {0: "batch_size"},
     },
+    opset_version=19
 )
