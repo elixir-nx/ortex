@@ -24,10 +24,9 @@ fn init(
     opt: i32,
 ) -> NifResult<ResourceArc<model::OrtexModel>> {
     let eps = utils::map_eps(env, eps);
-    Ok(ResourceArc::new(
-        model::init(model_path, eps, opt)
-            .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
-    ))
+    let model = model::init(model_path, eps, opt)
+        .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
+    Ok(ResourceArc::new(model))
 }
 
 #[rustler::nif]

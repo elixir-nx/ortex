@@ -2,9 +2,10 @@
 use core::convert::TryFrom;
 use ndarray::prelude::*;
 use ndarray::{ArrayBase, ArrayView, Data, IxDyn, IxDynImpl, ViewRepr};
-use ort::{Error, Value};
+use ort::{DynValue, Error, Value};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
+use std::convert::TryInto;
 
 use crate::constants::ortex_atoms;
 
@@ -47,66 +48,66 @@ impl OrtexTensor {
 
     pub fn reshape(&self, shape: Vec<usize>) -> rustler::NifResult<Self> {
         match self {
-            OrtexTensor::s8(y) => {
-                Ok(OrtexTensor::s8(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::s16(y) => {
-                Ok(OrtexTensor::s16(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::s32(y) => {
-                Ok(OrtexTensor::s32(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::s64(y) => {
-                Ok(OrtexTensor::s64(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::u8(y) => {
-                Ok(OrtexTensor::u8(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::u16(y) => {
-                Ok(OrtexTensor::u16(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::u32(y) => {
-                Ok(OrtexTensor::u32(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::u64(y) => {
-                Ok(OrtexTensor::u64(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::f16(y) => {
-                Ok(OrtexTensor::f16(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::bf16(y) => {
-                Ok(OrtexTensor::bf16(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::f32(y) => {
-                Ok(OrtexTensor::f32(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
-            OrtexTensor::f64(y) => {
-                Ok(OrtexTensor::f64(y.clone().into_shape(shape).map_err(
-                    |e| rustler::Error::Term(Box::new(e.to_string())),
-                )?))
-            }
+            OrtexTensor::s8(y) => Ok(OrtexTensor::s8(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::s16(y) => Ok(OrtexTensor::s16(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::s32(y) => Ok(OrtexTensor::s32(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::s64(y) => Ok(OrtexTensor::s64(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::u8(y) => Ok(OrtexTensor::u8(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::u16(y) => Ok(OrtexTensor::u16(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::u32(y) => Ok(OrtexTensor::u32(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::u64(y) => Ok(OrtexTensor::u64(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::f16(y) => Ok(OrtexTensor::f16(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::bf16(y) => Ok(OrtexTensor::bf16(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::f32(y) => Ok(OrtexTensor::f32(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
+            OrtexTensor::f64(y) => Ok(OrtexTensor::f64(
+                y.clone()
+                    .into_shape_with_order(shape)
+                    .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
+            )),
         }
     }
 
@@ -203,104 +204,82 @@ where
 impl TryFrom<&Value> for OrtexTensor {
     type Error = Error;
     fn try_from(e: &Value) -> Result<Self, Self::Error> {
-        let dtype = e.tensor_element_type().unwrap();
-        match dtype {
-            // TODO: Pull this out into an impl for each OrtexTensor type or some other
-            // function to be more DRY
-            ort::TensorElementType::Float16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::f16(tensor))
-            }
+        let dtype: ort::ValueType = e.dtype();
+        let ty = match dtype {
+            ort::ValueType::Tensor {
+                ty: t,
+                dimensions: _,
+            } => t,
+            _ => panic!("can't decode non tensor, got {}", dtype),
+        };
+
+        let tensor = match ty {
             ort::TensorElementType::Bfloat16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::bf16(tensor))
+                OrtexTensor::bf16(e.try_extract_tensor::<half::bf16>()?.into_owned())
+            }
+            ort::TensorElementType::Float16 => {
+                OrtexTensor::f16(e.try_extract_tensor::<half::f16>()?.into_owned())
             }
             ort::TensorElementType::Float32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::f32(tensor))
+                OrtexTensor::f32(e.try_extract_tensor::<f32>()?.into_owned())
             }
             ort::TensorElementType::Float64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::f64(tensor))
-            }
-            ort::TensorElementType::Int8 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::s8(tensor))
-            }
-            ort::TensorElementType::Int16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::s16(tensor))
-            }
-            ort::TensorElementType::Int32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::s32(tensor))
-            }
-            ort::TensorElementType::Int64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::s64(tensor))
+                OrtexTensor::f64(e.try_extract_tensor::<f64>()?.into_owned())
             }
             ort::TensorElementType::Uint8 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::u8(tensor))
+                OrtexTensor::u8(e.try_extract_tensor::<u8>()?.into_owned())
             }
             ort::TensorElementType::Uint16 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::u16(tensor))
+                OrtexTensor::u16(e.try_extract_tensor::<u16>()?.into_owned())
             }
             ort::TensorElementType::Uint32 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::u32(tensor))
+                OrtexTensor::u32(e.try_extract_tensor::<u32>()?.into_owned())
             }
             ort::TensorElementType::Uint64 => {
-                let tensor = e.extract_tensor()?.view().to_owned();
-                Ok(OrtexTensor::u64(tensor))
+                OrtexTensor::u64(e.try_extract_tensor::<u64>()?.into_owned())
             }
-            ort::TensorElementType::String | ort::TensorElementType::Bool => todo!(),
-        }
+            ort::TensorElementType::Int8 => {
+                OrtexTensor::s8(e.try_extract_tensor::<i8>()?.into_owned())
+            }
+            ort::TensorElementType::Int16 => {
+                OrtexTensor::s16(e.try_extract_tensor::<i16>()?.into_owned())
+            }
+            ort::TensorElementType::Int32 => {
+                OrtexTensor::s32(e.try_extract_tensor::<i32>()?.into_owned())
+            }
+            ort::TensorElementType::Int64 => {
+                OrtexTensor::s64(e.try_extract_tensor::<i64>()?.into_owned())
+            }
+            ort::TensorElementType::String => {
+                todo!("Can't return string tensors")
+            }
+            ort::TensorElementType::Bool => {
+                todo!("Can't return bool tensors")
+            }
+        };
+
+        Ok(tensor)
     }
 }
 
-impl TryFrom<&OrtexTensor> for Value {
+impl TryFrom<&OrtexTensor> for ort::SessionInputValue<'_> {
     type Error = Error;
-    fn try_from(tensor: &OrtexTensor) -> Result<Self, Self::Error> {
-        match tensor {
-            OrtexTensor::s8(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::s16(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::s32(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::s64(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::f16(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::f32(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::f64(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::bf16(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::u8(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::u16(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::u32(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-            OrtexTensor::u64(t) => {
-                std::convert::TryInto::<Value>::try_into(t.clone()).map_err(Error::from)
-            }
-        }
+    fn try_from(ort_tensor: &OrtexTensor) -> Result<Self, Self::Error> {
+        let r: DynValue = match ort_tensor {
+            OrtexTensor::s8(arr) => arr.to_owned().try_into()?,
+            OrtexTensor::s16(arr) => arr.clone().try_into()?,
+            OrtexTensor::s32(arr) => arr.clone().try_into()?,
+            OrtexTensor::s64(arr) => arr.clone().try_into()?,
+            OrtexTensor::f16(arr) => arr.clone().try_into()?,
+            OrtexTensor::f32(arr) => arr.clone().try_into()?,
+            OrtexTensor::f64(arr) => arr.clone().try_into()?,
+            OrtexTensor::bf16(arr) => arr.clone().try_into()?,
+            OrtexTensor::u8(arr) => arr.clone().try_into()?,
+            OrtexTensor::u16(arr) => arr.clone().try_into()?,
+            OrtexTensor::u32(arr) => arr.clone().try_into()?,
+            OrtexTensor::u64(arr) => arr.clone().try_into()?,
+        };
+        Ok(r.into())
     }
 }
 

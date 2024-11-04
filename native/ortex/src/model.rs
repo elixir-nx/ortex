@@ -10,9 +10,9 @@
 
 use crate::tensor::OrtexTensor;
 use crate::utils::map_opt_level;
-use std::convert::{Into, TryFrom};
+use std::convert::{TryFrom, TryInto};
 
-use ort::{Error, ExecutionProviderDispatch, Session, Value};
+use ort::{Error, ExecutionProviderDispatch, Session};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
@@ -37,15 +37,11 @@ pub fn init(
 ) -> Result<OrtexModel, Error> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
-    ort::init()
-        .with_execution_providers(&eps)
-        .with_name("ortex-model")
-        .commit()?;
 
     let session = Session::builder()?
-        .with_execution_providers(&eps)?
         .with_optimization_level(map_opt_level(opt))?
-        .with_model_from_file(model_path)?;
+        .with_execution_providers(eps)?
+        .commit_from_file(model_path)?;
 
     let state = OrtexModel { session };
     Ok(state)
@@ -88,21 +84,22 @@ pub fn run(
     inputs: Vec<ResourceArc<OrtexTensor>>,
 ) -> Result<Vec<(ResourceArc<OrtexTensor>, Vec<usize>, Atom, usize)>, Error> {
     // TODO: can we handle an error more elegantly than just .unwrap()?
-    let final_input: Vec<Value> = inputs
-        .into_iter()
-        .map(|x| Value::try_from(&*x).unwrap())
-        .collect();
+
+    let mut ortified_inputs: Vec<ort::SessionInputValue> = Vec::new();
+    for input in inputs {
+        let derefed_input: &OrtexTensor = &input;
+        let v: ort::SessionInputValue = derefed_input.try_into()?;
+        ortified_inputs.push(v);
+    }
 
     // Grab the session and run a forward pass with it
-    let session = &model.session;
+    let session: &ort::Session = &model.session;
 
     // Construct a Vec of ModelOutput enums based on the DynOrtTensor data type
-    let outputs = session.run(&final_input[..])?;
-
+    let outputs = session.run(&ortified_inputs[..])?;
     outputs
         .iter()
         .map(|(_name, val)| {
-            let val: &Value = val;
             let ortextensor: OrtexTensor = OrtexTensor::try_from(val)?;
             let shape = ortextensor.shape();
             let (dtype, bits) = ortextensor.dtype();
