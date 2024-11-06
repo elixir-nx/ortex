@@ -15,4 +15,5 @@ torch.onnx.export(
     output_names=["output"],
     dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
     export_params=True,
+    opset_version=19,
 )
