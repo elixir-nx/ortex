@@ -116,3 +116,12 @@ pub fn map_opt_level(opt: i32) -> GraphOptimizationLevel {
         _ => GraphOptimizationLevel::Disable,
     }
 }
+
+pub fn is_bool_input(inp: &ort::ValueType) -> bool {
+    match inp {
+        ort::ValueType::Tensor { ty, .. } => ty == &ort::TensorElementType::Bool,
+        ort::ValueType::Map { value, .. } => value == &ort::TensorElementType::Bool,
+        ort::ValueType::Sequence(boxed_input) => is_bool_input(boxed_input),
+        ort::ValueType::Optional(boxed_input) => is_bool_input(boxed_input),
+    }
+}
