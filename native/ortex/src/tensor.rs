@@ -26,6 +26,9 @@ pub enum OrtexTensor {
     bf16(Array<half::bf16, IxDyn>),
     f32(Array<f32, IxDyn>),
     f64(Array<f64, IxDyn>),
+    // the bool input is for internal use only.
+    // Any Nx facing ops should panic if called on a bool input
+    bool(Array<bool, IxDyn>),
 }
 
 impl OrtexTensor {
@@ -43,6 +46,7 @@ impl OrtexTensor {
             OrtexTensor::bf16(y) => y.shape().to_owned(),
             OrtexTensor::f32(y) => y.shape().to_owned(),
             OrtexTensor::f64(y) => y.shape().to_owned(),
+            _ => panic!("Can't convert this type to Nx format"),
         }
     }
 
@@ -108,6 +112,7 @@ impl OrtexTensor {
                     .into_shape_with_order(shape)
                     .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?,
             )),
+            _ => panic!("Can't convert this type to Nx format"),
         }
     }
 
@@ -125,6 +130,7 @@ impl OrtexTensor {
             OrtexTensor::bf16(_) => (ortex_atoms::bf(), 16),
             OrtexTensor::f32(_) => (ortex_atoms::f(), 32),
             OrtexTensor::f64(_) => (ortex_atoms::f(), 64),
+            _ => panic!("Can't convert this type to Nx format"),
         }
     }
 
@@ -142,6 +148,7 @@ impl OrtexTensor {
             OrtexTensor::bf16(y) => get_bytes(y),
             OrtexTensor::f32(y) => get_bytes(y),
             OrtexTensor::f64(y) => get_bytes(y),
+            _ => panic!("Can't convert this type to Nx format"),
         };
         contents
     }
@@ -173,6 +180,25 @@ impl OrtexTensor {
             OrtexTensor::bf16(y) => OrtexTensor::bf16(slice_array(y, &slice_specs).to_owned()),
             OrtexTensor::f32(y) => OrtexTensor::f32(slice_array(y, &slice_specs).to_owned()),
             OrtexTensor::f64(y) => OrtexTensor::f64(slice_array(y, &slice_specs).to_owned()),
+            _ => panic!("Can't convert this type to Nx format"),
+        }
+    }
+
+    pub fn to_bool(self) -> OrtexTensor {
+        match self {
+            OrtexTensor::u8(y) => {
+                let bool_tensor = y.to_owned().mapv(|x| match x {
+                    0 => false,
+                    1 => true,
+                    _ => {
+                        panic!(
+                            "Tried to convert a u8 tensor to bool, but not every element is 0 or 1"
+                        )
+                    }
+                });
+                OrtexTensor::bool(bool_tensor)
+            }
+            t => panic!("Can't convert this type {:?} to bool", t.dtype()),
         }
     }
 }
@@ -253,8 +279,10 @@ impl TryFrom<&Value> for OrtexTensor {
             ort::TensorElementType::String => {
                 todo!("Can't return string tensors")
             }
+            // map the output into u8 space
             ort::TensorElementType::Bool => {
-                todo!("Can't return bool tensors")
+                let nd_array = e.try_extract_tensor::<bool>()?.into_owned();
+                OrtexTensor::u8(nd_array.mapv(|x| x as u8))
             }
         };
 
@@ -278,8 +306,29 @@ impl TryFrom<&OrtexTensor> for ort::SessionInputValue<'_> {
             OrtexTensor::u16(arr) => arr.clone().try_into()?,
             OrtexTensor::u32(arr) => arr.clone().try_into()?,
             OrtexTensor::u64(arr) => arr.clone().try_into()?,
+            OrtexTensor::bool(arr) => arr.clone().try_into()?,
         };
         Ok(r.into())
+    }
+}
+
+impl Clone for OrtexTensor {
+    fn clone(&self) -> Self {
+        match self {
+            OrtexTensor::s8(t) => OrtexTensor::s8(t.clone()),
+            OrtexTensor::s16(t) => OrtexTensor::s16(t.clone()),
+            OrtexTensor::s32(t) => OrtexTensor::s32(t.clone()),
+            OrtexTensor::s64(t) => OrtexTensor::s64(t.clone()),
+            OrtexTensor::bf16(t) => OrtexTensor::bf16(t.clone()),
+            OrtexTensor::f16(t) => OrtexTensor::f16(t.clone()),
+            OrtexTensor::f32(t) => OrtexTensor::f32(t.clone()),
+            OrtexTensor::f64(t) => OrtexTensor::f64(t.clone()),
+            OrtexTensor::u8(t) => OrtexTensor::u8(t.clone()),
+            OrtexTensor::u16(t) => OrtexTensor::u16(t.clone()),
+            OrtexTensor::u32(t) => OrtexTensor::u32(t.clone()),
+            OrtexTensor::u64(t) => OrtexTensor::u64(t.clone()),
+            OrtexTensor::bool(t) => OrtexTensor::bool(t.clone()),
+        }
     }
 }
 
