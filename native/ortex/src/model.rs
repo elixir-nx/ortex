@@ -116,7 +116,7 @@ pub fn run(
             )[..],
         );
 
-        // NOTE: try_into impl here will implicitly map bool outputs to signed i8 outputs
+        // NOTE: try_into impl here will implicitly map bool outputs to u8 outputs
         let ortextensor: OrtexTensor = val.try_into()?;
         let shape = ortextensor.shape();
         let (dtype, bits) = ortextensor.dtype();

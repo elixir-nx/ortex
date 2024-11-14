@@ -1,6 +1,5 @@
 //! Conversions for packing/unpacking `OrtexTensor`s into different types
 use core::convert::TryFrom;
-use half::{bf16, f16};
 use ndarray::prelude::*;
 use ndarray::{ArrayBase, ArrayView, Data, IxDyn, IxDynImpl, ViewRepr};
 use ort::{DynValue, Error, Value};
@@ -187,24 +186,19 @@ impl OrtexTensor {
 
     pub fn to_bool(self) -> OrtexTensor {
         match self {
-            OrtexTensor::s8(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::s16(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::s32(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::s64(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::u8(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::u16(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::u32(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::u64(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0)),
-            OrtexTensor::f16(y) => {
-                OrtexTensor::bool(y.to_owned().mapv(|x| x != f16::ZERO || x != f16::NEG_ZERO))
+            OrtexTensor::u8(y) => {
+                let bool_tensor = y.to_owned().mapv(|x| match x {
+                    0 => false,
+                    1 => true,
+                    _ => {
+                        panic!(
+                            "Tried to convert a u8 tensor to bool, but not every element is 0 or 1"
+                        )
+                    }
+                });
+                OrtexTensor::bool(bool_tensor)
             }
-            OrtexTensor::bf16(y) => OrtexTensor::bool(
-                y.to_owned()
-                    .mapv(|x| x != bf16::ZERO || x != bf16::NEG_ZERO),
-            ),
-            OrtexTensor::f32(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0.)),
-            OrtexTensor::f64(y) => OrtexTensor::bool(y.to_owned().mapv(|x| x != 0.)),
-            _ => panic!("Can't convert this type to bool"),
+            t => panic!("Can't convert this type {:?} to bool", t.dtype()),
         }
     }
 }
@@ -285,10 +279,10 @@ impl TryFrom<&Value> for OrtexTensor {
             ort::TensorElementType::String => {
                 todo!("Can't return string tensors")
             }
-            // map the output into integer space
+            // map the output into u8 space
             ort::TensorElementType::Bool => {
                 let nd_array = e.try_extract_tensor::<bool>()?.into_owned();
-                OrtexTensor::s8(nd_array.mapv(|x| x as i8))
+                OrtexTensor::u8(nd_array.mapv(|x| x as u8))
             }
         };
 
