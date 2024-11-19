@@ -16,6 +16,7 @@ ndarray = "0.16.1"
 half = "2.2.1"
 tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
 num-traits = "0.2.15"
+rustls = "0.22.4"
 
 [features]
 # ONNXRuntime Execution providers
