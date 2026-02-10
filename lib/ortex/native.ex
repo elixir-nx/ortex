@@ -1,19 +1,37 @@
 defmodule Ortex.Native do
   @moduledoc false
 
-  @rustler_version Application.spec(:rustler, :vsn) |> to_string() |> Version.parse!()
+  @skip_compile? (case System.get_env("ORTEX_SKIP_COMPILE") do
+                    nil -> false
+                    value -> String.downcase(value) in ["1", "true", "yes", "on"]
+                  end)
+  @skip_download? (case System.get_env("ORTEX_SKIP_DOWNLOAD") do
+                     nil -> false
+                     value -> String.downcase(value) in ["1", "true", "yes", "on"]
+                   end)
 
   # We have to compile the crate before `use Rustler` compiles the crate since
   # cargo downloads the onnxruntime shared libraries and they are not available
   # to load or copy into Elixir's during the on_load or Elixir compile steps.
   # In the future, this may be configurable in Rustler.
-  if Version.compare(@rustler_version, "0.30.0") in [:gt, :eq] do
-    Rustler.Compiler.compile_crate(:ortex, Application.compile_env(:ortex, __MODULE__, []),
-      otp_app: :ortex,
-      crate: :ortex
-    )
-  else
-    Rustler.Compiler.compile_crate(__MODULE__, otp_app: :ortex, crate: :ortex)
+  if not @skip_compile? do
+    if @skip_download? do
+      System.put_env("ORT_SKIP_DOWNLOAD", "1")
+    end
+
+    rustler_version =
+      Application.spec(:rustler, :vsn)
+      |> to_string()
+      |> Version.parse!()
+
+    if Version.compare(rustler_version, "0.30.0") in [:gt, :eq] do
+      Rustler.Compiler.compile_crate(:ortex, Application.compile_env(:ortex, __MODULE__, []),
+        otp_app: :ortex,
+        crate: :ortex
+      )
+    else
+      Rustler.Compiler.compile_crate(__MODULE__, otp_app: :ortex, crate: :ortex)
+    end
   end
 
   Ortex.Util.copy_ort_libs()

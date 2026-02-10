@@ -59,15 +59,28 @@ defmodule Ortex.Serving do
   @behaviour Nx.Serving
 
   @impl true
-  def init(_inline_or_process, model, [_defn_options]) do
+  def init(_inline_or_process, model, defn_options) when is_list(defn_options) do
+    defn_options =
+      Enum.map(defn_options, fn opts ->
+        opts = if is_list(opts), do: opts, else: []
+        Keyword.put_new(opts, :compiler, Nx.Defn.Evaluator)
+      end)
+
     func = fn x -> Ortex.run(model, x) end
-    {:ok, func}
+    {:ok, {func, defn_options}}
   end
 
   @impl true
-  def handle_batch(batch, _partition, function) do
-    # A hack to move the back into a tensor for Ortex
-    out = function.(Nx.Defn.jit_apply(&Function.identity/1, [batch]))
-    {:execute, fn -> {out, :server_info} end, function}
+  def handle_batch(batch, partition, {function, defn_options}) do
+    opts = Enum.at(defn_options, partition) || []
+
+    materialized =
+      case batch do
+        %Nx.Batch{} -> Nx.Defn.jit_apply(&Function.identity/1, [batch], opts)
+        _ -> batch
+      end
+
+    out = function.(materialized)
+    {:execute, fn -> {out, :server_info} end, {function, defn_options}}
   end
 end

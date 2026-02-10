@@ -56,9 +56,54 @@ iex> result |> Nx.backend_transfer() |> Nx.argmax(axis: 1)
 ```elixir
 def deps do
   [
-    {:ortex, "~> 0.1.10"}
+    {:ortex, "~> 0.2.0-rc.1"}
   ]
 end
 ```
 
 You will need [Rust](https://www.rust-lang.org/tools/install) for compilation to succeed.
+
+## Execution provider features
+
+Ortex relies on `ort` cargo features to compile support for non-CPU execution providers.
+Defaults are OS-specific:
+
+- macOS: `coreml`
+- Windows: `directml`
+- Linux: none (CPU-only)
+
+Override via `ORTEX_FEATURES` as a comma-separated list. For example:
+
+```sh
+ORTEX_FEATURES=cuda,tensorrt mix compile
+```
+
+Enabling GPU providers requires the relevant system toolchains to be installed.
+
+### Packaging and Offline Builds
+
+If you are packaging Ortex with a precompiled NIF, set `ORTEX_SKIP_COMPILE=1` during
+compilation to avoid building the Rust crate. Ensure the NIF (and any required
+`libonnxruntime` binaries) are available in `priv/native` for the target platform.
+
+```sh
+ORTEX_SKIP_COMPILE=1 mix compile
+```
+
+For offline or system-provided ONNX Runtime builds, you can disable downloads and
+link dynamically using a local runtime install:
+
+```sh
+ORTEX_SKIP_DOWNLOAD=1 \
+ORT_PREFER_DYNAMIC_LINK=1 \
+ORT_LIB_LOCATION=/path/to/onnxruntime/lib \
+mix compile
+```
+
+If your package provides `libonnxruntime.pc`, enable pkg-config lookup:
+
+```sh
+ORTEX_FEATURES=pkg-config \
+PKG_CONFIG_PATH=/path/to/onnxruntime/lib/pkgconfig \
+mix compile
+```

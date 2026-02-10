@@ -9,10 +9,9 @@ mod model;
 mod tensor;
 mod utils;
 
-use model::OrtexModel;
 use tensor::OrtexTensor;
 
-use rustler::resource::ResourceArc;
+use rustler::ResourceArc;
 use rustler::types::Binary;
 use rustler::{Atom, Env, NifResult, Term};
 
@@ -23,7 +22,8 @@ fn init(
     eps: Vec<Atom>,
     opt: i32,
 ) -> NifResult<ResourceArc<model::OrtexModel>> {
-    let eps = utils::map_eps(env, eps);
+    let eps = utils::map_eps(env, eps)
+        .map_err(|e| rustler::Error::Term(Box::new(e)))?;
     let model = model::init(model_path, eps, opt)
         .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
     Ok(ResourceArc::new(model))
@@ -71,7 +71,7 @@ fn to_binary<'a>(
 }
 
 #[rustler::nif]
-pub fn slice<'a>(
+pub fn slice(
     tensor: ResourceArc<OrtexTensor>,
     start_indicies: Vec<isize>,
     lengths: Vec<isize>,
@@ -81,11 +81,11 @@ pub fn slice<'a>(
         start_indicies,
         lengths,
         strides,
-    )))
+    )?))
 }
 
 #[rustler::nif]
-pub fn reshape<'a>(
+pub fn reshape(
     tensor: ResourceArc<OrtexTensor>,
     shape: Vec<usize>,
 ) -> NifResult<ResourceArc<OrtexTensor>> {
@@ -93,32 +93,16 @@ pub fn reshape<'a>(
 }
 
 #[rustler::nif]
-pub fn concatenate<'a>(
+pub fn concatenate(
     tensors: Vec<ResourceArc<OrtexTensor>>,
     dtype: Term,
     axis: i32,
 ) -> NifResult<ResourceArc<OrtexTensor>> {
     let (dtype_t, dtype_bits): (Term, usize) = dtype.decode()?;
     let dtype_str = dtype_t.atom_to_string()?;
-    let concatted = tensor::concatenate(tensors, (&dtype_str, dtype_bits), axis as usize);
+    let concatted = tensor::concatenate(tensors, (&dtype_str, dtype_bits), axis as usize)
+        .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
     Ok(ResourceArc::new(concatted))
 }
 
-rustler::init!(
-    "Elixir.Ortex.Native",
-    [
-        run,
-        init,
-        from_binary,
-        to_binary,
-        show_session,
-        slice,
-        reshape,
-        concatenate
-    ],
-    load = |env: Env, _| {
-        rustler::resource!(OrtexModel, env);
-        rustler::resource!(OrtexTensor, env);
-        true
-    }
-);
+rustler::init!("Elixir.Ortex.Native");

@@ -4,7 +4,7 @@ defmodule Ortex.MixProject do
   def project do
     [
       app: :ortex,
-      version: "0.1.10",
+      version: "0.2.0-rc.1",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -31,12 +31,12 @@ defmodule Ortex.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:rustler, "~> 0.27"},
-      {:nx, "~> 0.6"},
-      {:tokenizers, "~> 0.4", only: :dev},
+      {:rustler, "~> 0.37"},
+      {:nx, "~> 0.10"},
+      {:tokenizers, "~> 0.5", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
-      {:exla, "~> 0.6", only: :dev},
-      {:torchx, "~> 0.6", only: :dev}
+      {:exla, "~> 0.10", only: :dev},
+      {:torchx, "~> 0.10", only: :dev}
     ]
   end
 
