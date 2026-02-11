@@ -9,14 +9,24 @@ name = "ortex"
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
+[workspace]
+resolver = "2"
+
 [dependencies]
-rustler = "0.29.0"
-ort = { version = "2.0.0-rc.8" }
+rustler = "0.36.2"
+ort-sys = { version = "=2.0.0-rc.10", default-features = false }
+ort = { version = "2.0.0-rc.10", features = [
+    "half",
+    "cuda",
+   # "tensorrt",
+   # "directml",
+   # "coreml"
+] }
 ndarray = "0.16.1"
-half = "2.2.1"
-tracing-subscriber = { version = "0.3", features = [ "env-filter", "fmt" ] }
-num-traits = "0.2.15"
-rustls = "0.22.4"
+half = "2.6.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+num-traits = "0.2.19"
+rustls = "0.23.29"
 
 [features]
 # ONNXRuntime Execution providers

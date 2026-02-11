@@ -7,14 +7,15 @@ use ndarray::{ArrayViewMut, Ix, IxDyn};
 
 use ndarray::ShapeError;
 
-use rustler::resource::ResourceArc;
 use rustler::types::Binary;
+use rustler::ResourceArc;
 use rustler::{Atom, Env, NifResult};
 
-use ort::{ExecutionProviderDispatch, GraphOptimizationLevel};
+use ort::execution_providers::ExecutionProviderDispatch;
+use ort::session::builder::GraphOptimizationLevel;
 
 /// A faster (unsafe) way of creating an Array from an Erlang binary
-fn initialize_from_raw_ptr<T>(ptr: *const T, shape: &[Ix]) -> ArrayViewMut<T, IxDyn> {
+fn initialize_from_raw_ptr<T>(ptr: *const T, shape: &[Ix]) -> ArrayViewMut<'_, T, IxDyn> {
     let array = unsafe { ArrayViewMut::from_shape_ptr(shape, ptr as *mut T) };
     array
 }
@@ -94,15 +95,19 @@ pub fn to_binary<'a>(
 pub fn map_eps(env: rustler::env::Env, eps: Vec<Atom>) -> Vec<ExecutionProviderDispatch> {
     eps.iter()
         .map(|e| match &e.to_term(env).atom_to_string().unwrap()[..] {
-            CPU => ort::CPUExecutionProvider::default().build(),
-            CUDA => ort::CUDAExecutionProvider::default().build(),
-            TENSORRT => ort::TensorRTExecutionProvider::default().build(),
-            ACL => ort::ACLExecutionProvider::default().build(),
-            ONEDNN => ort::OneDNNExecutionProvider::default().build(),
-            COREML => ort::CoreMLExecutionProvider::default().build(),
-            DIRECTML => ort::DirectMLExecutionProvider::default().build(),
-            ROCM => ort::ROCmExecutionProvider::default().build(),
-            _ => ort::CPUExecutionProvider::default().build(),
+            CPU => ort::execution_providers::cpu::CPUExecutionProvider::default().build(),
+            CUDA => ort::execution_providers::cuda::CUDAExecutionProvider::default().build(),
+            TENSORRT => {
+                ort::execution_providers::tensorrt::TensorRTExecutionProvider::default().build()
+            }
+            ACL => ort::execution_providers::acl::ACLExecutionProvider::default().build(),
+            ONEDNN => ort::execution_providers::onednn::OneDNNExecutionProvider::default().build(),
+            COREML => ort::execution_providers::coreml::CoreMLExecutionProvider::default().build(),
+            DIRECTML => {
+                ort::execution_providers::directml::DirectMLExecutionProvider::default().build()
+            }
+            ROCM => ort::execution_providers::rocm::ROCmExecutionProvider::default().build(),
+            _ => ort::execution_providers::cpu::CPUExecutionProvider::default().build(),
         })
         .collect()
 }
@@ -117,11 +122,11 @@ pub fn map_opt_level(opt: i32) -> GraphOptimizationLevel {
     }
 }
 
-pub fn is_bool_input(inp: &ort::ValueType) -> bool {
+pub fn is_bool_input(inp: &ort::value::ValueType) -> bool {
     match inp {
-        ort::ValueType::Tensor { ty, .. } => ty == &ort::TensorElementType::Bool,
-        ort::ValueType::Map { value, .. } => value == &ort::TensorElementType::Bool,
-        ort::ValueType::Sequence(boxed_input) => is_bool_input(boxed_input),
-        ort::ValueType::Optional(boxed_input) => is_bool_input(boxed_input),
+        ort::value::ValueType::Tensor { ty, .. } => ty == &ort::tensor::TensorElementType::Bool,
+        ort::value::ValueType::Map { value, .. } => value == &ort::tensor::TensorElementType::Bool,
+        ort::value::ValueType::Sequence(boxed_input) => is_bool_input(boxed_input),
+        ort::value::ValueType::Optional(boxed_input) => is_bool_input(boxed_input),
     }
 }
