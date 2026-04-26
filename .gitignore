@@ -24,3 +24,8 @@ ortex-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Source-build artifacts — populated by `cargo build` + copy_ort_libs/0
+# when ORTEX_BUILD=true. Precompiled-path consumers receive priv/native/
+# contents from the published tarballs at install time, not via git.
+/priv/native/

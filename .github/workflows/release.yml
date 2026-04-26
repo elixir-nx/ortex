@@ -1,0 +1,107 @@
+name: Build precompiled NIFs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Only run on main when the native crate or this workflow itself
+      # changes. Tag pushes always run (via the tags trigger below).
+      - "native/**"
+      - ".github/workflows/release.yml"
+    tags:
+      - "v*"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/release.yml"
+
+# softprops/action-gh-release creates the GitHub release on tag
+# pushes, which requires write access to repository contents. Since
+# 2023 the default GITHUB_TOKEN scope has been read-only, so the
+# permission must be granted explicitly.
+permissions:
+  contents: write
+
+jobs:
+  build_release:
+    name: NIF ${{ matrix.nif }} - ${{ matrix.job.target }} (${{ matrix.job.os }})
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # NIF version 2.16 covers OTP 24-26; 2.17 covers OTP 27-28.
+        # Both contemporary versions are built so consumers across the
+        # range get a precompiled artifact.
+        nif: ["2.16", "2.17"]
+        job:
+          # Apple Silicon. macos-14 runners are arm64 natively.
+          - { target: aarch64-apple-darwin, os: macos-14 }
+          # Intel Mac. macos-13 was retired by GitHub on Dec 4 2025;
+          # macos-15-intel is the replacement and is the last available
+          # Intel-architecture macOS runner (supported through Aug 2027).
+          # See https://github.com/actions/runner-images/issues/13045.
+          - { target: x86_64-apple-darwin, os: macos-15-intel }
+          # Linux x86_64. Built on ubuntu-22.04 — produces a binary
+          # that requires glibc >= 2.35. Could be moved to a
+          # manylinux2014 container if older-distro support becomes
+          # a goal.
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-22.04 }
+          # Linux ARM64 via cross-rs (cross-compiled from x86_64 runner).
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04, use-cross: true }
+          # Windows x86_64 (MSVC ABI). Covers >95% of Windows users.
+          - { target: x86_64-pc-windows-msvc, os: windows-2022 }
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Extract project version from mix.exs
+        id: version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^  @version "\(.*\)"$/\1/p' mix.exs | head -1)
+          if [ -z "$version" ]; then
+            echo "Failed to extract @version from mix.exs" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Project version: ${version}"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.job.target }}
+
+      # `philss/rustler-precompiled-action` is the standard build +
+      # package step used by every rustler_precompiled crate
+      # (Tokenizers, Polars, Explorer, ...). It runs cargo (or cross
+      # for Linux ARM64), then tarballs the resulting NIF with the
+      # naming convention RustlerPrecompiled expects on the consumer
+      # side. With ort 2.0.0-rc.x and stable rustc onnxruntime is
+      # statically linked into the NIF, so the single-file tarball
+      # the action produces is the complete artifact.
+      - name: Build NIF
+        id: build-crate
+        uses: philss/rustler-precompiled-action@v1.1.5
+        with:
+          project-name: ortex
+          project-version: ${{ steps.version.outputs.version }}
+          target: ${{ matrix.job.target }}
+          nif-version: ${{ matrix.nif }}
+          use-cross: ${{ matrix.job.use-cross }}
+          project-dir: "native/ortex"
+
+      - name: Upload artifact (workflow run)
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build-crate.outputs.file-name }}
+          path: ${{ steps.build-crate.outputs.file-path }}
+
+      - name: Attach to GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          files: ${{ steps.build-crate.outputs.file-path }}
+

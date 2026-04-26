@@ -56,9 +56,34 @@ iex> result |> Nx.backend_transfer() |> Nx.argmax(axis: 1)
 ```elixir
 def deps do
   [
-    {:ortex, "~> 0.1.10"}
+    {:ortex, "~> 0.1.11"}
   ]
 end
 ```
 
-You will need [Rust](https://www.rust-lang.org/tools/install) for compilation to succeed.
+### Precompiled NIFs
+
+Starting with `0.1.11`, Ortex ships **precompiled NIF artifacts** for common platforms. If you're on one of the supported targets you do **not** need a Rust toolchain — `mix deps.get` downloads a prebuilt binary directly.
+
+Supported targets:
+
+* `aarch64-apple-darwin` (Apple Silicon macOS)
+* `x86_64-apple-darwin` (Intel macOS)
+* `x86_64-unknown-linux-gnu` (Linux x86_64, glibc >= 2.35)
+* `aarch64-unknown-linux-gnu` (Linux ARM64, glibc >= 2.35)
+* `x86_64-pc-windows-msvc` (Windows x86_64, MSVC ABI)
+
+`onnxruntime` is statically linked into the precompiled NIF, so the artifact is a single self-contained shared library — no separate runtime install required.
+
+### Source build
+
+You'll need [Rust](https://www.rust-lang.org/tools/install) and a working C toolchain to build from source. This happens automatically when:
+
+* Your target tuple isn't in the precompiled list above (e.g. musl Linux, 32-bit ARM, FreeBSD).
+* You explicitly request it with `ORTEX_BUILD=true`:
+
+  ```bash
+  ORTEX_BUILD=true mix deps.compile ortex --force
+  ```
+
+The source path is the same flow that's shipped since 0.1.0 — `cargo build` downloads `onnxruntime` and the resulting NIF is dropped into `priv/native/`. Useful for development on the NIF crate itself, or when you need a feature flag (`cuda`, `tensorrt`, `coreml`, `directml`) that the precompiled CPU-only artifact doesn't include.

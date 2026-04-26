@@ -13,8 +13,11 @@ jobs:
         otp: ["27.1.2"]
     env:
       MIX_ENV: test
+      # Force source build. CI validates the source path end-to-end;
+      # precompiled artifacts are exercised separately in release.yml.
+      ORTEX_BUILD: "true"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}
@@ -33,8 +36,11 @@ jobs:
     name: macOS
     env:
       MIX_ENV: test
+      # Force source build. CI validates the source path end-to-end;
+      # precompiled artifacts are exercised separately in release.yml.
+      ORTEX_BUILD: "true"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: Install
         run: |
           brew update
