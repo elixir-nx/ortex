@@ -22,9 +22,10 @@ fn init(
     model_path: String,
     eps: Vec<Atom>,
     opt: i32,
+    session_options: Vec<(String, String)>,
 ) -> NifResult<ResourceArc<model::OrtexModel>> {
     let eps = utils::map_eps(env, eps);
-    let model = model::init(model_path, eps, opt)
+    let model = model::init(model_path, eps, opt, session_options)
         .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
     Ok(ResourceArc::new(model))
 }
