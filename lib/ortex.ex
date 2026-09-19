@@ -18,14 +18,24 @@ defmodule Ortex do
   `config.exs` where `EXECUTION_PROVIDERS` is a list of strings of which execution providers
   to enable.
 
+  Session config entries can be passed as a fourth argument. These are handed
+  straight to ONNX Runtime as
+  [session configuration keys](https://github.com/microsoft/onnxruntime/blob/main/include/onnxruntime/core/session/onnxruntime_session_options_config_keys.h),
+  so any key ONNX Runtime understands works here. Values may be given as strings,
+  booleans (`true`/`false` become `"1"`/`"0"`), or numbers.
+
   ## Examples
 
       iex> Ortex.load("./models/tinymodel.onnx")
       iex> Ortex.load("./models/tinymodel.onnx", [:cuda, :cpu])
       iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 0)
+      iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 3,
+      ...>   "session.intra_op.allow_spinning": false,
+      ...>   "session.inter_op.allow_spinning": false
+      ...> )
 
   """
-  defdelegate load(path, eps \\ [:cpu], opt \\ 3), to: Ortex.Model
+  defdelegate load(path, eps \\ [:cpu], opt \\ 3, session_options \\ []), to: Ortex.Model
 
   @doc """
   Run a forward pass through a model.

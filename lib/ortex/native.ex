@@ -25,7 +25,7 @@ defmodule Ortex.Native do
 
   # When loading a NIF module, dummy clauses for all NIF function are required.
   # NIF dummies usually just error out when called when the NIF is not loaded, as that should never normally happen.
-  def init(_model_path, _execution_providers, _optimization_level),
+  def init(_model_path, _execution_providers, _optimization_level, _session_options),
     do: :erlang.nif_error(:nif_not_loaded)
 
   def run(_model, _inputs), do: :erlang.nif_error(:nif_not_loaded)
