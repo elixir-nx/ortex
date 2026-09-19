@@ -22,14 +22,27 @@ defmodule Ortex.Model do
   defstruct [:reference]
 
   @doc false
-  def load(path, eps \\ [:cpu], opt \\ 3) do
-    case Ortex.Native.init(path, eps, opt) do
+  def load(path, eps \\ [:cpu], opt \\ 3, options \\ []) do
+    options = Keyword.validate!(options, intra_threads: nil)
+    intra_threads = validate_intra_threads!(options[:intra_threads])
+
+    case Ortex.Native.init(path, eps, opt, intra_threads) do
       {:error, msg} ->
         raise msg
 
       model ->
         %Ortex.Model{reference: model}
     end
+  end
+
+  defp validate_intra_threads!(nil), do: nil
+
+  defp validate_intra_threads!(threads) when is_integer(threads) and threads > 0,
+    do: threads
+
+  defp validate_intra_threads!(threads) do
+    raise ArgumentError,
+          "expected :intra_threads to be a positive integer, got: #{inspect(threads)}"
   end
 
   @doc false
