@@ -4,7 +4,7 @@
 //! # Examples
 //!
 //! ```
-//! let model = init("./models/resnet50.onnx", vec![])?;
+//! let model = init("./models/resnet50.onnx", vec![], 3, None)?;
 //! let (inputs, outputs) = show(model)?;
 //! ```
 
@@ -31,16 +31,26 @@ unsafe impl Sync for OrtexModel {}
 
 /// Creates a model given the path to the model and vector of execution providers.
 /// The execution providers are Atoms from Erlang/Elixir.
+///
+/// `intra_threads` caps the thread pool one inference is spread across. `None`
+/// leaves the choice to ONNX Runtime, which defaults to one thread per physical
+/// core and honours `ORT_INTRA_OP_NUM_THREADS` when set in the OS environment.
 pub fn init(
     model_path: String,
     eps: Vec<ExecutionProviderDispatch>,
     opt: i32,
+    intra_threads: Option<usize>,
 ) -> Result<OrtexModel, Error> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
 
-    let session = Session::builder()?
-        .with_optimization_level(map_opt_level(opt))?
+    let mut builder = Session::builder()?.with_optimization_level(map_opt_level(opt))?;
+
+    if let Some(threads) = intra_threads {
+        builder = builder.with_intra_threads(threads)?;
+    }
+
+    let session = builder
         .with_execution_providers(eps)?
         .commit_from_file(model_path)?;
 
