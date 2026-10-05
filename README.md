@@ -62,3 +62,42 @@ end
 ```
 
 You will need [Rust](https://www.rust-lang.org/tools/install) for compilation to succeed.
+
+### Per-session CPU threading
+
+`Ortex.load/4` accepts a keyword list of ONNX Runtime session options:
+
+```elixir
+model = Ortex.load("model.onnx", [:cpu], 3,
+  intra_op_num_threads: 1,
+  inter_op_num_threads: 1,
+  execution_mode: :sequential,
+  intra_op_allow_spinning: false,
+  inter_op_allow_spinning: false
+)
+```
+
+Omitting the fourth argument, or passing `[]`, retains the existing behavior.
+Omitted individual settings leave ONNX Runtime defaults intact; `0` for either
+thread count lets ONNX Runtime choose. Inter-op parallelism applies only to
+`:parallel` execution. Settings belong to the loaded session, not the process or
+node. Choose them using measurements for your model and hardware; a smaller
+thread pool does not guarantee faster inference.
+
+These settings use the existing `ort` 2.0.0-rc.8 APIs and session config entries;
+no ONNX Runtime or Rust dependency upgrade is required. Build the Elixir code
+**and** native library from the same revision (`mix deps.compile ortex --force`
+for a dependency). A copied/precompiled old NIF cannot implement the new
+`init_with_options/4` entry point. Ortex normally compiles Rust from source;
+custom release pipelines must invalidate native caches, retain `Cargo.lock`,
+build for each target OS/architecture, and package the matching ONNX Runtime
+libraries as before. The Hex package includes the new Elixir source through its
+existing `lib` entry.
+
+`Ortex.run/2` still uses a `DirtyIo` NIF. Tensor transfers use other NIFs, including
+`DirtyCpu` operations. Timing the Elixir `run/2` call includes transfer and
+scheduler wait, not just ONNX graph execution. Scheduler classification deserves
+a separate investigation and is deliberately unchanged here.
+
+References: [ONNX Runtime threading](https://onnxruntime.ai/docs/performance/tune-performance/threading.html),
+[ERTS dirty NIFs](https://www.erlang.org/doc/apps/erts/erl_nif.html#dirty-nifs).

@@ -22,8 +22,15 @@ defmodule Ortex.Model do
   defstruct [:reference]
 
   @doc false
-  def load(path, eps \\ [:cpu], opt \\ 3) do
-    case Ortex.Native.init(path, eps, opt) do
+  def load(path, eps \\ [:cpu], opt \\ 3, session_options \\ []) do
+    options = Ortex.SessionOptions.normalize(session_options)
+
+    result =
+      if session_options == [],
+        do: Ortex.Native.init(path, eps, opt),
+        else: Ortex.Native.init_with_options(path, eps, opt, options)
+
+    case result do
       {:error, msg} ->
         raise msg
 

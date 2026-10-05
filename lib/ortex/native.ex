@@ -28,6 +28,9 @@ defmodule Ortex.Native do
   def init(_model_path, _execution_providers, _optimization_level),
     do: :erlang.nif_error(:nif_not_loaded)
 
+  def init_with_options(_model_path, _execution_providers, _optimization_level, _options),
+    do: :erlang.nif_error(:nif_not_loaded)
+
   def run(_model, _inputs), do: :erlang.nif_error(:nif_not_loaded)
   def from_binary(_bin, _shape, _type), do: :erlang.nif_error(:nif_not_loaded)
   def to_binary(_reference, _bits, _limit), do: :erlang.nif_error(:nif_not_loaded)

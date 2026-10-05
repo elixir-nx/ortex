@@ -17,8 +17,22 @@ use ort::{Error, ExecutionProviderDispatch, Session};
 use rustler::resource::ResourceArc;
 use rustler::Atom;
 
-/// Holds the model state which include onnxruntime session and environment. All
-/// are threadsafe so this can be called concurrently from the beam.
+#[derive(rustler::NifUnitEnum, Clone, Copy)]
+pub enum ExecutionMode {
+    Sequential,
+    Parallel,
+}
+
+#[derive(rustler::NifMap, Default)]
+pub struct SessionOptions {
+    pub intra_op_num_threads: Option<u32>,
+    pub inter_op_num_threads: Option<u32>,
+    pub execution_mode: Option<ExecutionMode>,
+    pub intra_op_allow_spinning: Option<bool>,
+    pub inter_op_allow_spinning: Option<bool>,
+}
+
+/// Holds the thread-safe ONNX Runtime session shared by BEAM callers.
 pub struct OrtexModel {
     pub session: ort::Session,
 }
@@ -35,14 +49,31 @@ pub fn init(
     model_path: String,
     eps: Vec<ExecutionProviderDispatch>,
     opt: i32,
+    options: SessionOptions,
 ) -> Result<OrtexModel, Error> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
 
-    let session = Session::builder()?
+    let mut builder = Session::builder()?
         .with_optimization_level(map_opt_level(opt))?
-        .with_execution_providers(eps)?
-        .commit_from_file(model_path)?;
+        .with_execution_providers(eps)?;
+
+    if let Some(threads) = options.intra_op_num_threads {
+        builder = builder.with_intra_threads(threads as usize)?;
+    }
+    if let Some(threads) = options.inter_op_num_threads {
+        builder = builder.with_inter_threads(threads as usize)?;
+    }
+    if let Some(mode) = options.execution_mode {
+        builder = builder.with_parallel_execution(matches!(mode, ExecutionMode::Parallel))?;
+    }
+    if let Some(spinning) = options.intra_op_allow_spinning {
+        builder = builder.with_intra_op_spinning(spinning)?;
+    }
+    if let Some(spinning) = options.inter_op_allow_spinning {
+        builder = builder.with_inter_op_spinning(spinning)?;
+    }
+    let session = builder.commit_from_file(model_path)?;
 
     let state = OrtexModel { session };
     Ok(state)
