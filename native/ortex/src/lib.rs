@@ -24,7 +24,21 @@ fn init(
     opt: i32,
 ) -> NifResult<ResourceArc<model::OrtexModel>> {
     let eps = utils::map_eps(env, eps);
-    let model = model::init(model_path, eps, opt)
+    let model = model::init(model_path, eps, opt, model::SessionOptions::default())
+        .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
+    Ok(ResourceArc::new(model))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn init_with_options(
+    env: Env,
+    model_path: String,
+    eps: Vec<Atom>,
+    opt: i32,
+    options: model::SessionOptions,
+) -> NifResult<ResourceArc<model::OrtexModel>> {
+    let eps = utils::map_eps(env, eps);
+    let model = model::init(model_path, eps, opt, options)
         .map_err(|e| rustler::Error::Term(Box::new(e.to_string())))?;
     Ok(ResourceArc::new(model))
 }
@@ -109,6 +123,7 @@ rustler::init!(
     [
         run,
         init,
+        init_with_options,
         from_binary,
         to_binary,
         show_session,

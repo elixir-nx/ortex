@@ -18,6 +18,19 @@ defmodule Ortex do
   `config.exs` where `EXECUTION_PROVIDERS` is a list of strings of which execution providers
   to enable.
 
+  The optional fourth argument configures this session only:
+
+    * `:intra_op_num_threads` / `:inter_op_num_threads` — non-negative integers
+      (0 lets ONNX Runtime choose). Inter-op threads apply to parallel execution.
+    * `:execution_mode` — `:sequential` or `:parallel`.
+    * `:intra_op_allow_spinning` / `:inter_op_allow_spinning` — booleans.
+
+  Omitted options preserve ONNX Runtime defaults. For example,
+  `Ortex.load(path, [:cpu], 3, intra_op_num_threads: 1, inter_op_num_threads: 1,
+  execution_mode: :sequential, intra_op_allow_spinning: false,
+  inter_op_allow_spinning: false)`. Settings cannot be changed after loading.
+  This API requires rebuilding the native library along with the Elixir code.
+
   ## Examples
 
       iex> Ortex.load("./models/tinymodel.onnx")
@@ -25,7 +38,7 @@ defmodule Ortex do
       iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 0)
 
   """
-  defdelegate load(path, eps \\ [:cpu], opt \\ 3), to: Ortex.Model
+  defdelegate load(path, eps \\ [:cpu], opt \\ 3, session_options \\ []), to: Ortex.Model
 
   @doc """
   Run a forward pass through a model.
