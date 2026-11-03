@@ -62,3 +62,8 @@ end
 ```
 
 You will need [Rust](https://www.rust-lang.org/tools/install) for compilation to succeed.
+
+Builds that link ONNX Runtime dynamically, which includes the `cuda` and `tensorrt` features,
+fail to compile with Rust 1.100 and later because of the `ort` version Ortex currently uses.
+Until `ort` is upgraded, use Rust 1.99 for these builds, for example by running
+`rustup override set 1.99.1` in your project directory.
