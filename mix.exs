@@ -32,7 +32,7 @@ defmodule Ortex.MixProject do
   defp deps do
     [
       {:rustler, "~> 0.27"},
-      {:nx, "~> 0.6"},
+      {:nx, "~> 0.6 or ~> 1.0"},
       {:tokenizers, "~> 0.4", only: :dev},
       {:ex_doc, "0.29.4", only: :dev, runtime: false},
       {:exla, "~> 0.6", only: :dev},
