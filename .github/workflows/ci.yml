@@ -19,6 +19,10 @@ jobs:
         with:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
+      # ort 2.0.0-rc.8 fails to build the CUDA/TensorRT variant on Rust 1.100+
+      # (new cargo build-dir layout). Remove once ort is upgraded.
+      - name: Pin Rust 1.99
+        run: rustup toolchain install 1.99.1 --profile minimal && rustup default 1.99.1
       - name: Install dependencies
         run: mix deps.get
       - name: Compile and check warnings
