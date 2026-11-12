@@ -23,6 +23,21 @@ defmodule OrtexTest do
     assert result |> Nx.backend_transfer() |> Nx.argmax(axis: 1) == Nx.tensor([499])
   end
 
+  test "session config entries" do
+    model =
+      Ortex.load("./models/tinymodel.onnx", [:cpu], 3,
+        "session.intra_op.allow_spinning": false,
+        "session.inter_op.allow_spinning": 0,
+        "session.disable_prepacking": "1"
+      )
+
+    {%Nx.Tensor{shape: {1, 10}}, %Nx.Tensor{shape: {1, 10}}, %Nx.Tensor{shape: {1, 10}}} =
+      Ortex.run(model, {
+        Nx.broadcast(0, {1, 100}) |> Nx.as_type(:s32),
+        Nx.broadcast(0.0, {1, 100}) |> Nx.as_type(:f32)
+      })
+  end
+
   test "Nx.Serving with tinymodel" do
     model = Ortex.load("./models/tinymodel.onnx")
 

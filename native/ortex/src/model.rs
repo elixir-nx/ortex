@@ -4,7 +4,7 @@
 //! # Examples
 //!
 //! ```
-//! let model = init("./models/resnet50.onnx", vec![])?;
+//! let model = init("./models/resnet50.onnx", vec![], 3, vec![])?;
 //! let (inputs, outputs) = show(model)?;
 //! ```
 
@@ -30,19 +30,27 @@ pub struct OrtexModel {
 unsafe impl Sync for OrtexModel {}
 
 /// Creates a model given the path to the model and vector of execution providers.
-/// The execution providers are Atoms from Erlang/Elixir.
+/// The execution providers are Atoms from Erlang/Elixir. `session_options` are
+/// key/value pairs passed straight through to ONNX Runtime as session config
+/// entries, e.g. `("session.intra_op.allow_spinning", "0")`.
 pub fn init(
     model_path: String,
     eps: Vec<ExecutionProviderDispatch>,
     opt: i32,
+    session_options: Vec<(String, String)>,
 ) -> Result<OrtexModel, Error> {
     // TODO: send tracing logs to erlang/elixir _somehow_
     // tracing_subscriber::fmt::init();
 
-    let session = Session::builder()?
+    let mut builder = Session::builder()?
         .with_optimization_level(map_opt_level(opt))?
-        .with_execution_providers(eps)?
-        .commit_from_file(model_path)?;
+        .with_execution_providers(eps)?;
+
+    for (key, value) in session_options.iter() {
+        builder = builder.with_config_entry(key, value)?;
+    }
+
+    let session = builder.commit_from_file(model_path)?;
 
     let state = OrtexModel { session };
     Ok(state)

@@ -22,8 +22,8 @@ defmodule Ortex.Model do
   defstruct [:reference]
 
   @doc false
-  def load(path, eps \\ [:cpu], opt \\ 3) do
-    case Ortex.Native.init(path, eps, opt) do
+  def load(path, eps \\ [:cpu], opt \\ 3, session_options \\ []) do
+    case Ortex.Native.init(path, eps, opt, normalize_session_options(session_options)) do
       {:error, msg} ->
         raise msg
 
@@ -31,6 +31,24 @@ defmodule Ortex.Model do
         %Ortex.Model{reference: model}
     end
   end
+
+  # ONNX Runtime session config entries are string key/value pairs. Accept the
+  # natural Elixir spellings (atoms, booleans, numbers) and stringify them.
+  defp normalize_session_options(session_options) do
+    Enum.map(session_options, fn {key, value} ->
+      {config_key(key), config_value(value)}
+    end)
+  end
+
+  defp config_key(key) when is_atom(key), do: Atom.to_string(key)
+  defp config_key(key) when is_binary(key), do: key
+
+  defp config_value(true), do: "1"
+  defp config_value(false), do: "0"
+  defp config_value(value) when is_binary(value), do: value
+  defp config_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp config_value(value) when is_integer(value), do: Integer.to_string(value)
+  defp config_value(value) when is_float(value), do: Float.to_string(value)
 
   @doc false
   def run(%Ortex.Model{} = model, tensor) when not is_tuple(tensor) do
