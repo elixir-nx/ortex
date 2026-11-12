@@ -18,14 +18,23 @@ defmodule Ortex do
   `config.exs` where `EXECUTION_PROVIDERS` is a list of strings of which execution providers
   to enable.
 
+  ## Options
+
+    * `:intra_threads` - the number of threads ONNX Runtime spreads a single
+      inference across. By default ONNX Runtime uses one thread per physical
+      core, so one busy model can occupy most of the machine; a smaller pool
+      trades per-inference latency for cores left free for other work, such
+      as a second model. Must be a positive integer.
+
   ## Examples
 
       iex> Ortex.load("./models/tinymodel.onnx")
       iex> Ortex.load("./models/tinymodel.onnx", [:cuda, :cpu])
       iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 0)
+      iex> Ortex.load("./models/tinymodel.onnx", [:cpu], 3, intra_threads: 2)
 
   """
-  defdelegate load(path, eps \\ [:cpu], opt \\ 3), to: Ortex.Model
+  defdelegate load(path, eps \\ [:cpu], opt \\ 3, options \\ []), to: Ortex.Model
 
   @doc """
   Run a forward pass through a model.

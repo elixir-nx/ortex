@@ -23,6 +23,36 @@ defmodule OrtexTest do
     assert result |> Nx.backend_transfer() |> Nx.argmax(axis: 1) == Nx.tensor([499])
   end
 
+  describe "intra_threads" do
+    test "a session capped at one intra-op thread still runs the model" do
+      model = Ortex.load("./models/tinymodel.onnx", [:cpu], 3, intra_threads: 1)
+
+      {%Nx.Tensor{shape: {1, 10}}, %Nx.Tensor{shape: {1, 10}}, %Nx.Tensor{shape: {1, 10}}} =
+        Ortex.run(model, {
+          Nx.broadcast(0, {1, 100}) |> Nx.as_type(:s32),
+          Nx.broadcast(0.0, {1, 100}) |> Nx.as_type(:f32)
+        })
+    end
+
+    test "is not required" do
+      assert %Ortex.Model{} = Ortex.load("./models/tinymodel.onnx", [:cpu], 3, [])
+    end
+
+    test "must be a positive integer" do
+      for bad <- [0, -1, 2.0, "4"] do
+        assert_raise ArgumentError, ~r/intra_threads/, fn ->
+          Ortex.load("./models/tinymodel.onnx", [:cpu], 3, intra_threads: bad)
+        end
+      end
+    end
+
+    test "an unknown option is refused rather than ignored" do
+      assert_raise ArgumentError, ~r/intra_thread/, fn ->
+        Ortex.load("./models/tinymodel.onnx", [:cpu], 3, intra_thread: 2)
+      end
+    end
+  end
+
   test "Nx.Serving with tinymodel" do
     model = Ortex.load("./models/tinymodel.onnx")
 
