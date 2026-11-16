@@ -124,6 +124,23 @@ defmodule Ortex.Backend do
     %{out | data: %B{ref: Ortex.Native.concatenate(tensor_refs, type, axis)}}
   end
 
+  @impl true
+  def stack(out, tensors, axis) do
+    # Give each tensor a new axis of size 1 at `axis`, then join them along it.
+    tensors =
+      Enum.map(tensors, fn %T{shape: shape, names: names} = t ->
+        new_axis = %{
+          t
+          | shape: Tuple.insert_at(shape, axis, 1),
+            names: List.insert_at(names, axis, nil)
+        }
+
+        reshape(new_axis, t)
+      end)
+
+    concatenate(out, tensors, axis)
+  end
+
   if Application.compile_env(:ortex, :add_backend_on_inspect, true) do
     defp maybe_add_signature(result, %T{data: %B{ref: _mat_ref}}) do
       Inspect.Algebra.concat([
