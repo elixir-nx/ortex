@@ -6,11 +6,12 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
-    name: Linux ${{ matrix.elixir }}, ${{ matrix.otp }}
+    name: Linux ${{ matrix.elixir }}, ${{ matrix.otp }}, Nx ${{ matrix.nx }}
     strategy:
       matrix:
         elixir: ["1.17.3"]
         otp: ["27.1.2"]
+        nx: ["locked", "latest"]
     env:
       MIX_ENV: test
     steps:
@@ -23,8 +24,13 @@ jobs:
       # (new cargo build-dir layout). Remove once ort is upgraded.
       - name: Pin Rust 1.99
         run: rustup toolchain install 1.99.1 --profile minimal && rustup default 1.99.1
+      # Nx 1.x needs complex 1.x. The dev-only exla/torchx 0.6 still require
+      # Nx 0.6, so only the test dependencies are fetched.
+      - name: Unlock Nx to test the newest release
+        if: matrix.nx == 'latest'
+        run: mix deps.unlock nx complex
       - name: Install dependencies
-        run: mix deps.get
+        run: mix deps.get --only test
       - name: Compile and check warnings
         run: mix compile --warnings-as-errors
       - name: Check formatting
