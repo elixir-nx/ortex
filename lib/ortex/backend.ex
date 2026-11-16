@@ -124,7 +124,8 @@ defmodule Ortex.Backend do
     %{out | data: %B{ref: Ortex.Native.concatenate(tensor_refs, type, axis)}}
   end
 
-  @impl true
+  # stack/3 is a backend callback since Nx 0.8; older Nx stacks with reshape and concatenate.
+  @impl {:stack, 3} in Nx.Backend.behaviour_info(:callbacks)
   def stack(out, tensors, axis) do
     # Give each tensor a new axis of size 1 at `axis`, then join them along it.
     tensors =
